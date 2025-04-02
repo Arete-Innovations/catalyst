@@ -1,5 +1,13 @@
 @charset "UTF-8";
 
+// Set variables first to avoid undefined variable errors
+$primary-color: #2196F3;
+$secondary-color: #26a69a;
+$background-color: #121212;
+$surface-color: #1e1e1e; 
+$text-color: #e0e0e0;
+$card-bg-color: #2d2d2d;
+
 // Color
 @import "components/color-variables";
 
