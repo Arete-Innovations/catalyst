@@ -1,0 +1,48 @@
+{
+  "pages": {
+    "index": {
+      "title": "Welcome to Catalyst 🔥",
+      "subtitle": "The suckless framework for the based."
+    },
+    "user/index": {
+      "title": "User Dashboard",
+      "subtitle": "Manage your account and settings."
+    },
+    "auth/login": {
+      "title": "Login",
+      "subtitle": "Sign in to your account."
+    },
+    "auth/register": {
+      "title": "Register",
+      "subtitle": "Create a new account.",
+      "success": "Account created successfully."
+    },
+    "oops/index": {
+      "title": "Page Not Found",
+      "subtitle": "We couldn't find what you were looking for."
+    }
+  },
+  "titles": {
+    "app_name": "Catalyst 🔥",
+    "app_title": "Catalyst 🔥 - Default Title"
+  },
+  "menus": {
+    "main": {
+      "home": "Home",
+      "about": "About",
+      "contact": "Contact"
+    }
+  },
+  "buttons": {
+    "submit": "Submit",
+    "cancel": "Cancel"
+  },
+  "errors": {
+    "404": "Page not found",
+    "500": "Internal server error"
+  },
+  "placeholders": {
+    "coming_soon": "Coming Soon"
+  }
+}
+

@@ -1,0 +1,8 @@
+max_width = 220 
+fn_brace_style = "SameLine"
+imports_granularity = "Item"
+merge_imports = true
+reorder_imports = true
+newline_ends_file = false
+trailing_whitespace = "Trim"
+struct_literal_width = 0
