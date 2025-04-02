@@ -20,7 +20,6 @@ diesel = { version = "2.2.7", features = ["postgres", "64-column-tables", "chron
 dotenv = "0.15.0"
 flate2 = "1.0.35"
 jsonwebtoken = "9.3.1"
-mime_guess = "2.0.5"
 rocket_dyn_templates = { version = "0.2.0", features = ["tera"] }
 rocket = { version = "0.5.1", features = ["json", "tls"] }
 serde_json = "1.0"
