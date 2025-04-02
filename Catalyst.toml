@@ -99,7 +99,7 @@ woff2 = "MaterialIcons-Regular.woff2"
 ttf = "MaterialIcons-Regular.ttf"
 
 [assets.fontawesome]
-base_url = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/latest"
+base_url = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1"
 public_dir = "fonts/fontawesome"
 css = ["css/all.min.css"]
 js = ["js/all.min.js"]
