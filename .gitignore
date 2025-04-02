@@ -1,0 +1,27 @@
+# Rust build artifacts
+/target
+Cargo.lock
+
+# Generated files
+/public
+
+# Log files
+/storage/logs/*.log
+
+# Claude.ai/code documentation
+CLAUDE.md
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
