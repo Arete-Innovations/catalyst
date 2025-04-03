@@ -9,7 +9,7 @@ Catalyst is a "suckless" web framework for Rust that emphasizes simplicity, modu
 
 - 🚀 [Rocket](https://rocket.rs/) for web server and routing
 - ⛽ [Diesel](https://diesel.rs/) for ORM and database operations
-- 🔧 [Tera](https://tera.netlify.app/) for HTML templating
+- 🔧 [Tera](https://docs.rs/crate/tera/latest) for HTML templating
 - ⚡ [HTMX](https://htmx.org/) for interactive frontend with minimal JavaScript
 - 🎨 [MaterializeCSS](https://materializecss.com/) for styling
 
