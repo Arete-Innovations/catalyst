@@ -11,7 +11,7 @@ Catalyst is a "suckless" web framework for Rust that emphasizes simplicity, modu
 - ⛽ [Diesel](https://diesel.rs/) for ORM and database operations
 - 🔧 [Tera](https://tera.netlify.app/) for HTML templating
 - ⚡ [HTMX](https://htmx.org/) for interactive frontend with minimal JavaScript
-- 🎨 [MaterializeCSS](https://materializecss.com/) for styling (automatically downloaded during initialization)
+- 🎨 [MaterializeCSS](https://materializecss.com/) for styling
 
 ## 🧘 The "Suckless" Philosophy
 
@@ -234,7 +234,7 @@ my_project/
 │   │   └── compress.rs       # Response compression
 │   │
 │   ├── services/             # Business logic layer
-│   │   ├── mod.rs            # Services module exports 
+│   │   ├── mod.rs            # Services module exports
 │   │   ├── builders/         # UI builders for components
 │   │   │   ├── context.rs    # Template context builder
 │   │   │   ├── list.rs       # List component builder
@@ -338,14 +338,14 @@ ignore = ["migrations", "schema_migrations"]
 
 # Struct generation configuration
 [codegen.structs]
-# Tables to ignore in struct generation 
+# Tables to ignore in struct generation
 ignore = ["migrations", "schema_migrations"]
 # Traits to derive on generated structs
 derives = [
   "Debug",
   "Queryable",
-  "Clone", 
-  "Serialize", 
+  "Clone",
+  "Serialize",
   "Deserialize"
 ]
 # Automatic imports for generated structs

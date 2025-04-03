@@ -4,5 +4,3 @@ port = 8000
 template_dir = "templates"
 engines = ["tera"]
 static = { path = "static" }
-
-
