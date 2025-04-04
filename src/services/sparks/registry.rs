@@ -2,9 +2,13 @@ use crate::cata_log;
 use crate::services::*;
 use rocket::{Build, Rocket};
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 use std::sync::{Mutex, OnceLock};
+use toml;
 
 static SPARK_REGISTRY: OnceLock<Mutex<HashMap<&'static str, fn() -> Box<dyn Spark>>>> = OnceLock::new();
+static SPARK_DESCRIPTIONS: OnceLock<Mutex<HashMap<&'static str, &'static str>>> = OnceLock::new();
 
 /// Trait representing a Catalyst spark (module extension)
 pub trait Spark: Send + Sync + 'static {
@@ -16,6 +20,11 @@ pub trait Spark: Send + Sync + 'static {
 
     /// Name of the spark
     fn name(&self) -> &str;
+    
+    /// Description of the spark
+    fn description(&self) -> &str {
+        "No description available"
+    }
 }
 
 /// Register a spark creator function
@@ -28,11 +37,62 @@ pub fn register_spark(name: &'static str, creator: fn() -> Box<dyn Spark>) {
 
 include!(concat!(env!("OUT_DIR"), "/spark_registry.rs"));
 
+/// Load spark descriptions from manifest files
+pub fn load_spark_descriptions() {
+    let descriptions = SPARK_DESCRIPTIONS.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut descriptions_guard = descriptions.lock().unwrap();
+    
+    // Path to sparks directory (relative to the project root)
+    let sparks_dir = "../sparks";
+    
+    for spark_name in AVAILABLE_SPARKS {
+        let manifest_path = format!("{}/{}/manifest.toml", sparks_dir, spark_name);
+        let path = Path::new(&manifest_path);
+        
+        if path.exists() {
+            match fs::read_to_string(path) {
+                Ok(content) => {
+                    match toml::from_str::<toml::Value>(&content) {
+                        Ok(toml_value) => {
+                            if let Some(spark_section) = toml_value.get("spark") {
+                                if let Some(description) = spark_section.get("description") {
+                                    if let Some(desc_str) = description.as_str() {
+                                        // Convert to static string (safe for this use case as descriptions won't change at runtime)
+                                        let static_desc: &'static str = Box::leak(desc_str.to_string().into_boxed_str());
+                                        descriptions_guard.insert(*spark_name, static_desc);
+                                        cata_log!(Debug, format!("Loaded description for spark '{}': {}", spark_name, static_desc));
+                                    }
+                                }
+                            }
+                        },
+                        Err(e) => cata_log!(Warning, format!("Failed to parse manifest for spark '{}': {}", spark_name, e)),
+                    }
+                },
+                Err(e) => cata_log!(Warning, format!("Failed to read manifest for spark '{}': {}", spark_name, e)),
+            }
+        } else {
+            cata_log!(Warning, format!("Manifest file not found for spark '{}' at '{}'", spark_name, manifest_path));
+        }
+    }
+}
+
+/// Get a spark's description
+pub fn get_spark_description(name: &str) -> &'static str {
+    if let Some(descriptions) = SPARK_DESCRIPTIONS.get() {
+        let descriptions_guard = descriptions.lock().unwrap();
+        if let Some(desc) = descriptions_guard.get(name) {
+            return *desc;
+        }
+    }
+    "No description available"
+}
+
 /// Initialize the registry with all available sparks
 pub fn init_registry() {
     if SPARK_REGISTRY.get().is_none() {
         let _ = SPARK_REGISTRY.get_or_init(|| Mutex::new(HashMap::new()));
         register_all_discovered_sparks();
+        load_spark_descriptions();
         cata_log!(Info, format!("Registered sparks: {:?}", get_available_sparks()));
     }
 }
@@ -56,7 +116,9 @@ impl rocket::fairing::Fairing for SparkLoggingFairing {
         } else {
             println!("\x1b[38;2;148;22;127m✨ Sparks\x1b[34m:\x1b[0m");
             for spark in sparks {
-                println!("   \x1b[1;38;2;255;255;255m>>\x1b[0m \x1b[38;2;76;11;227m{}\x1b[0m \x1b[38;2;255;255;255m(initialized and attached)\x1b[0m", spark);
+                let description = get_spark_description(spark);
+                println!("   \x1b[1;38;2;255;255;255m>>\x1b[0m \x1b[38;2;76;11;227m{}\x1b[0m \x1b[38;2;255;255;255m{}\x1b[0m", 
+                         spark, description);
             }
         }
     }
