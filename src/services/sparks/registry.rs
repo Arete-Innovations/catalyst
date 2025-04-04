@@ -42,27 +42,93 @@ pub fn load_spark_descriptions() {
     let descriptions = SPARK_DESCRIPTIONS.get_or_init(|| Mutex::new(HashMap::new()));
     let mut descriptions_guard = descriptions.lock().unwrap();
     
-    // Path to sparks directory (relative to the project root)
-    let sparks_dir = "../sparks";
+    // Get current working directory
+    let current_dir = match std::env::current_dir() {
+        Ok(dir) => dir,
+        Err(e) => {
+            cata_log!(Error, format!("Failed to get current directory: {}", e));
+            return;
+        }
+    };
     
+    cata_log!(Debug, format!("Current working directory: {}", current_dir.display()));
+    
+    // Try different potential locations for the sparks directory
+    let potential_paths = vec![
+        "../sparks",            // If running from catalystproject/
+        "../../sparks",         // If running from catalystproject/src/ or similar
+        "../../../sparks",      // If running from deeper subdirectory
+        "./sparks",             // If running from catablast/
+        "../catablast/sparks",  // Other possibilities
+        "/home/tragdate/codumeu/catablast/sparks" // Absolute path as fallback
+    ];
+    
+    let mut sparks_dir = None;
+    
+    for path in potential_paths {
+        let test_path = Path::new(path);
+        cata_log!(Debug, format!("Checking potential sparks dir: {}", test_path.display()));
+        
+        if test_path.exists() && test_path.is_dir() {
+            // See if we can find at least one manifest.toml in this directory
+            if let Ok(entries) = std::fs::read_dir(test_path) {
+                for entry in entries.flatten() {
+                    let entry_path = entry.path();
+                    if entry_path.is_dir() {
+                        let manifest_path = entry_path.join("manifest.toml");
+                        if manifest_path.exists() {
+                            sparks_dir = Some(path);
+                            cata_log!(Info, format!("Found sparks directory at: {}", test_path.display()));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        if sparks_dir.is_some() {
+            break;
+        }
+    }
+    
+    let sparks_dir = match sparks_dir {
+        Some(dir) => dir,
+        None => {
+            cata_log!(Error, "Could not find sparks directory. Descriptions will not be loaded.");
+            return;
+        }
+    };
+    
+    cata_log!(Debug, format!("Looking for spark manifests in: {}", sparks_dir));
     for spark_name in AVAILABLE_SPARKS {
         let manifest_path = format!("{}/{}/manifest.toml", sparks_dir, spark_name);
         let path = Path::new(&manifest_path);
         
+        cata_log!(Debug, format!("Checking manifest path: {}", manifest_path));
         if path.exists() {
+            cata_log!(Debug, format!("Found manifest for spark '{}' at '{}'", spark_name, manifest_path));
             match fs::read_to_string(path) {
                 Ok(content) => {
+                    cata_log!(Debug, format!("Read manifest content for '{}', parsing TOML...", spark_name));
                     match toml::from_str::<toml::Value>(&content) {
                         Ok(toml_value) => {
                             if let Some(spark_section) = toml_value.get("spark") {
+                                cata_log!(Debug, format!("Found [spark] section in manifest for '{}'", spark_name));
                                 if let Some(description) = spark_section.get("description") {
+                                    cata_log!(Debug, format!("Found description field for '{}'", spark_name));
                                     if let Some(desc_str) = description.as_str() {
                                         // Convert to static string (safe for this use case as descriptions won't change at runtime)
                                         let static_desc: &'static str = Box::leak(desc_str.to_string().into_boxed_str());
                                         descriptions_guard.insert(*spark_name, static_desc);
                                         cata_log!(Debug, format!("Loaded description for spark '{}': {}", spark_name, static_desc));
+                                    } else {
+                                        cata_log!(Warning, format!("Description for spark '{}' is not a string", spark_name));
                                     }
+                                } else {
+                                    cata_log!(Warning, format!("No description field found in [spark] section for '{}'", spark_name));
                                 }
+                            } else {
+                                cata_log!(Warning, format!("No [spark] section found in manifest for '{}'", spark_name));
                             }
                         },
                         Err(e) => cata_log!(Warning, format!("Failed to parse manifest for spark '{}': {}", spark_name, e)),
@@ -72,6 +138,11 @@ pub fn load_spark_descriptions() {
             }
         } else {
             cata_log!(Warning, format!("Manifest file not found for spark '{}' at '{}'", spark_name, manifest_path));
+            // Try to locate the current working directory to help with troubleshooting
+            match std::env::current_dir() {
+                Ok(path) => cata_log!(Debug, format!("Current working directory: {}", path.display())),
+                Err(e) => cata_log!(Warning, format!("Could not determine current working directory: {}", e)),
+            }
         }
     }
 }
