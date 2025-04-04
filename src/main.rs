@@ -47,7 +47,7 @@ fn rocket() -> _ {
         .attach(AdHoc::on_liftoff("Start Scheduler", |_rocket| {
             Box::pin(async move {
                 spawn(scheduler());
-                println!("Scheduler has started.");
+                cata_log!(Info, "Scheduler has started.");
             })
         }))
         .attach(AdHoc::on_response("Template Error", |_, res| {
