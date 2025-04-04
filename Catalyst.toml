@@ -2,6 +2,9 @@
 environment = "dev"
 show_compiler_warnings = true 
 
+[sparks]
+plznohac = "https://github.com/Arete-Innovations/plznohac"
+
 [codegen]
 structs_dir = "src/structs/generated"
 models_dir = "src/models/generated"
