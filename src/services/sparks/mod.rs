@@ -1,1 +1,3 @@
-//here you include the modules you want to expose to the outside world
+pub mod registry;
+
+pub use registry::*;
