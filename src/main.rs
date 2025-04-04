@@ -42,6 +42,8 @@ fn rocket() -> _ {
         .attach(Template::fairing())
         .attach(CacheControlFairing)
         .attach(rocket_csrf_token::Fairing::default())
+        .attach(sparks::SparkLoggingFairing)
+        .all_sparks()
         .attach(AdHoc::on_liftoff("Start Scheduler", |_rocket| {
             Box::pin(async move {
                 spawn(scheduler());
