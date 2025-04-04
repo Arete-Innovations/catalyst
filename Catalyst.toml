@@ -4,6 +4,7 @@ show_compiler_warnings = true
 
 [sparks]
 plznohac = "https://github.com/Arete-Innovations/plznohac"
+vigil = "https://github.com/Arete-Innovations/vigil"
 
 [codegen]
 structs_dir = "src/structs/generated"
