@@ -19,7 +19,7 @@ pub trait Spark: Send + Sync + 'static {
 
     /// Name of the spark
     fn name(&self) -> &str;
-    
+
     /// Description of the spark
     fn description(&self) -> &str {
         "No description available"
@@ -40,15 +40,15 @@ include!(concat!(env!("OUT_DIR"), "/spark_registry.rs"));
 pub fn load_spark_descriptions() {
     let descriptions = SPARK_DESCRIPTIONS.get_or_init(|| Mutex::new(HashMap::new()));
     let mut descriptions_guard = descriptions.lock().unwrap();
-    
+
     // Path to sparks directory (relative to the project root)
     let sparks_dir = "../sparks";
-    
+
     cata_log!(Debug, format!("Looking for spark manifests in: {}", sparks_dir));
     for spark_name in AVAILABLE_SPARKS {
         let manifest_path = format!("{}/{}/manifest.toml", sparks_dir, spark_name);
         let path = Path::new(&manifest_path);
-        
+
         if path.exists() {
             match fs::read_to_string(path) {
                 Ok(content) => {
@@ -63,10 +63,10 @@ pub fn load_spark_descriptions() {
                                     }
                                 }
                             }
-                        },
+                        }
                         Err(e) => cata_log!(Warning, format!("Failed to parse manifest for spark '{}': {}", spark_name, e)),
                     }
-                },
+                }
                 Err(e) => cata_log!(Warning, format!("Failed to read manifest for spark '{}': {}", spark_name, e)),
             }
         }
@@ -114,8 +114,7 @@ impl rocket::fairing::Fairing for SparkLoggingFairing {
             println!("\x1b[38;2;148;22;127m✨ Sparks\x1b[34m:\x1b[0m");
             for spark in sparks {
                 let description = get_spark_description(spark);
-                println!("   \x1b[1;38;2;255;255;255m>>\x1b[0m \x1b[38;2;76;11;227m{}\x1b[0m \x1b[38;2;255;255;255m{}\x1b[0m", 
-                         spark, description);
+                println!("   \x1b[1;38;2;255;255;255m>>\x1b[0m \x1b[38;2;76;11;227m{}:\x1b[0m \x1b[38;2;255;255;255m{}\x1b[0m", spark, description);
             }
         }
     }
