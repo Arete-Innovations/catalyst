@@ -1,12 +1,12 @@
 #[macro_use]
 extern crate rocket;
 
-use dotenv::dotenv;
 use rocket::fairing::AdHoc;
 use rocket::fs::{relative, FileServer};
 use rocket_dyn_templates::Template;
 use tokio::spawn;
 
+mod bootstrap;
 mod database;
 mod middleware;
 mod models;
@@ -14,14 +14,14 @@ mod routes;
 mod services;
 mod structs;
 
+use bootstrap::*;
 use middleware::*;
 use routes::*;
 use services::*;
 
 #[launch]
 fn rocket() -> _ {
-    dotenv().ok();
-    logger::setup_panic_hook();
+    bootstrap();
     cata_log!(Info, "Starting server...");
     let auth_routes = public::auth::routes();
     let admin_routes = private::admin::routes();
@@ -59,3 +59,4 @@ fn rocket() -> _ {
         }))
         .attach(Gzip)
 }
+
