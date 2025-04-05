@@ -1,4 +1,5 @@
 use crate::cata_log;
+use crate::services::*;
 use once_cell::sync::Lazy;
 use rocket::async_trait;
 use rocket::http::{CookieJar, Method, Status};
@@ -25,6 +26,8 @@ pub struct BaseContext {
     pub flash: Option<(String, String)>,
     pub title: Option<String>,
     pub csrf_token: Option<String>,
+    pub environment: String,
+    pub sparks: TemplateComponentsView,
 }
 
 #[derive(Serialize, Debug)]
@@ -133,12 +136,18 @@ impl<'r> AppContext<'r> {
             .and_then(|t| t.as_str())
             .map(String::from);
 
+        let environment = "dev".to_string();
+        let is_dev = true;
+        let sparks = makeuse::get_template_components(is_dev);
+
         BaseContext {
             lang: translations.clone(),
             translations: translations.clone(),
             flash: self.flash.as_ref().map(|f| (f.kind().to_string(), f.message().to_string())),
             title,
             csrf_token: self.csrf_token.as_ref().and_then(|token| token.authenticity_token().ok()),
+            environment,
+            sparks,
         }
     }
 
@@ -151,9 +160,6 @@ impl<'r> AppContext<'r> {
     }
 }
 
-// CSRF form verification functionality is more elegantly handled in the forms directly
-// The Rocket Form handling system allows for custom validation which is more appropriate
-// for this use case than trying to create a generic wrapper
 #[inline]
 pub fn verify_csrf_for_state_change(app_context: &AppContext<'_>, token: &str) -> Result<(), Status> {
     if !app_context.requires_csrf {
@@ -173,3 +179,4 @@ pub fn verify_csrf_for_state_change(app_context: &AppContext<'_>, token: &str) -
         }
     }
 }
+
