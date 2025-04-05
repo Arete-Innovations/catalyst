@@ -10,6 +10,20 @@
     <link rel="stylesheet" href="/public/css/dark.min.css" />
     <link rel="stylesheet" href="/public/fonts/fontawesome/css/all.min.css" />
     <link rel="stylesheet" href="/public/css/app/index.min.css" />
+    <!-- Spark meta tags -->
+    {% for meta_tag in sparks.meta_tags %}
+    {{ meta_tag | safe }}
+    {% endfor %}
+
+    <!-- Spark CSS -->
+    {% for style in sparks.head_styles %}
+    {{ style | safe }}
+    {% endfor %}
+
+    <!-- Spark scripts -->
+    {% for script in sparks.head_scripts %}
+    {{ script | safe }}
+    {% endfor %}
   </head>
 
   <body class="grey darken-4 white-text">
