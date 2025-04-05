@@ -1,6 +1,6 @@
 [settings]
 environment = "dev"
-show_compiler_warnings = true 
+show_compiler_warnings = true
 
 [sparks]
 plznohac = "https://github.com/Arete-Innovations/plznohac"
