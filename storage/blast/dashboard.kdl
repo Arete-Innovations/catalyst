@@ -8,7 +8,7 @@ layout {
 
     tab name="💥 Dashboard" focus=true {
         pane split_direction="vertical" {
-            pane split_direction="horizontal" size="60%" {
+            pane split_direction="horizontal" size="50%" {
                 pane name="Server Output" command="bash" size="60%" {
                     args "-c" "tail -n100 -f storage/logs/server.log"
                 }
@@ -19,13 +19,25 @@ layout {
                     args "-c" "tail -n30 -f storage/logs/error.log"
                 }
             }
-            pane split_direction="horizontal" size="40%" {
+
+            pane split_direction="horizontal" size="25%" {
+                pane split_direction="vertical" name="📬 Routes" command="bash" size="60%" {
+                    args "-c" "storage/blast/monitor_log.sh routes"
+                }
+                pane split_direction="vertical" name="📡 Fairings" command="bash" size="30%" {
+                    args "-c" "storage/blast/monitor_log.sh fairings"
+                }
+                pane split_direction="vertical" name="✨ Sparks" command="bash" size="10%" {
+                    args "-c" "storage/blast/monitor_log.sh sparks"
+                }
+            }
+            pane split_direction="horizontal" size="25%" {
                 pane name="🧰 Menu" command="bash" size="45%" {
                     args "-c" "blast cli"
-                        focus true
+                    focus true
                 }
                 pane name="Blast Log" command="bash" size="35%" {
-                    args "-c" "tail -n60 -f storage/blast/blast.log"
+                    args "-c" "storage/blast/blast_log.sh"
                 }
             }
         }
@@ -66,7 +78,7 @@ layout {
 
     tab name=" Database" {
         pane name="Database" command="bash" {
-            args "-c" "db_url=$(grep 'DATABASE_URL=' .env | cut -d '=' -f2); db_url=\"${db_url}?\"; lazysql \"${db_url}sslmode=disable\""
+            args "-c" "db_url=$(grep '^DATABASE_URL=' .env | cut -d '=' -f2); db_url=\"${db_url}?\"; lazysql \"${db_url}sslmode=disable\""
         }
     }
 }
