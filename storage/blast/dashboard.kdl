@@ -1,0 +1,72 @@
+layout {
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="tab-bar"
+        }
+        children
+    }
+
+    tab name="💥 Dashboard" focus=true {
+        pane split_direction="vertical" {
+            pane split_direction="horizontal" size="60%" {
+                pane name="Server Output" command="bash" size="60%" {
+                    args "-c" "tail -n100 -f storage/logs/server.log"
+                }
+                pane name="Warning Log" command="bash" size="20%" {
+                    args "-c" "tail -n30 -f storage/logs/warning.log"
+                }
+                pane name="Error Log" command="bash" size="20%" {
+                    args "-c" "tail -n30 -f storage/logs/error.log"
+                }
+            }
+            pane split_direction="horizontal" size="40%" {
+                pane name="🧰 Menu" command="bash" size="45%" {
+                    args "-c" "blast cli"
+                        focus true
+                }
+                pane name="Blast Log" command="bash" size="35%" {
+                    args "-c" "tail -n60 -f storage/blast/blast.log"
+                }
+            }
+        }
+    }
+
+    tab name="📜Logs" {
+        pane split_direction="horizontal" {
+            pane name="Error Logs" command="bash" {
+                args "-c" "tail -n100 -f storage/logs/error.log"
+            }
+            pane name="Warning Logs" command="bash" {
+                args "-c" "tail -n100 -f storage/logs/warning.log"
+            }
+            pane name="Info Logs" command="bash" {
+                args "-c" "tail -n100 -f storage/logs/info.log"
+            }
+            pane name="Debug Logs" command="bash" {
+                args "-c" "tail -n100 -f storage/logs/debug.log"
+            }
+        }
+    }
+
+    tab name="⏱️ Cronjobs" {
+        pane split_direction="horizontal" {
+            pane name="Interactive Cronjob Manager" command="bash" {
+                args "-c" "blast cronjobs interactive"
+            }
+            pane split_direction="vertical" {
+                pane name="Job Execution Log" command="bash" {
+                    args "-c" "if [ -d \"storage/cronjobs\" ]; then tail -n100 -f storage/cronjobs/execution.log; else echo 'No job execution log found' > /tmp/cronjob_missing.log && tail -f /tmp/cronjob_missing.log; fi"
+                }
+                pane name="Error Log" command="bash" {
+                    args "-c" "if [ -d \"storage/cronjobs\" ]; then tail -n50 -f storage/cronjobs/errors.log; else echo 'No job errors log found' > /tmp/cronjob_errors_missing.log && tail -f /tmp/cronjob_errors_missing.log; fi"
+                }
+            }
+        }
+    }
+
+    tab name=" Database" {
+        pane name="Database" command="bash" {
+            args "-c" "db_url=$(grep 'DATABASE_URL=' .env | cut -d '=' -f2); db_url=\"${db_url}?\"; lazysql \"${db_url}sslmode=disable\""
+        }
+    }
+}
