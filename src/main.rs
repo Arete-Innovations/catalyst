@@ -8,6 +8,7 @@ use tokio::spawn;
 
 mod bootstrap;
 mod database;
+mod meltdown;
 mod middleware;
 mod models;
 mod routes;
@@ -59,4 +60,3 @@ fn rocket() -> _ {
         }))
         .attach(Gzip)
 }
-

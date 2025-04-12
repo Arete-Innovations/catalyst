@@ -3,6 +3,7 @@ pub mod cache;
 pub mod catchers;
 pub mod compress;
 pub mod guards;
+pub mod htmx;
 pub mod jwt;
 
 pub use app_context::*;
@@ -10,4 +11,5 @@ pub use cache::*;
 pub use catchers::*;
 pub use compress::*;
 pub use guards::*;
+pub use htmx::*;
 pub use jwt::*;

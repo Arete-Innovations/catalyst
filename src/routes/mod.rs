@@ -1,5 +1,12 @@
-pub mod private;
-pub mod public;
+pub mod admin;
+pub mod api;
+pub mod home;
+pub mod route_group;
+pub mod user;
 
-pub use private::*;
-pub use public::*;
+pub use admin::*;
+pub use api::*;
+pub use home::*;
+pub use route_group::*;
+pub use user::*;
+

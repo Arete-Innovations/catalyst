@@ -1,8 +1,9 @@
 use crate::cata_log;
+use crate::meltdown::{MeltDown, MeltType};
 use crate::services::*;
 use once_cell::sync::Lazy;
 use rocket::async_trait;
-use rocket::http::{CookieJar, Method, Status};
+use rocket::http::{CookieJar, Method};
 use rocket::outcome::Outcome::{Error, Forward, Success};
 use rocket::request::{FlashMessage, FromRequest, Outcome, Request};
 use rocket_csrf_token::CsrfToken;
@@ -106,16 +107,21 @@ impl<'r> AppContext<'r> {
         self.requires_csrf
     }
 
-    pub fn verify_csrf_token(&self, token: &str) -> Result<(), &'static str> {
+    pub fn verify_csrf_token(&self, token: &str) -> Result<(), MeltDown> {
         if !self.requires_csrf {
             return Ok(());
         }
 
-        let csrf_token = self.csrf_token.as_ref().ok_or("CSRF token missing but required for this request")?;
+        let csrf_token = self
+            .csrf_token
+            .as_ref()
+            .ok_or_else(|| MeltDown::new(MeltType::ValidationFailed, "CSRF token missing").with_context("request_type", "state_changing"))?;
 
         csrf_token.verify(&token.to_string()).map_err(|e| {
             cata_log!(Warning, format!("CSRF verification failed: {:?}", e));
-            "Invalid CSRF token"
+            MeltDown::new(MeltType::ValidationFailed, "CSRF verification failed")
+                .with_context("error", format!("{:?}", e))
+                .with_user_message("Invalid request token. Please try again.")
         })
     }
 
@@ -161,7 +167,7 @@ impl<'r> AppContext<'r> {
 }
 
 #[inline]
-pub fn verify_csrf_for_state_change(app_context: &AppContext<'_>, token: &str) -> Result<(), Status> {
+pub fn verify_csrf_for_state_change(app_context: &AppContext<'_>, token: &str) -> Result<(), MeltDown> {
     if !app_context.requires_csrf {
         return Ok(());
     }
@@ -171,11 +177,15 @@ pub fn verify_csrf_for_state_change(app_context: &AppContext<'_>, token: &str) -
     match app_context.csrf_token.as_ref() {
         Some(csrf_token) => csrf_token.verify(&token_string).map_err(|e| {
             cata_log!(Warning, format!("CSRF verification failed: {:?}", e));
-            Status::Forbidden
+            MeltDown::new(MeltType::ValidationFailed, "CSRF verification failed")
+                .with_context("error", format!("{:?}", e))
+                .with_user_message("Invalid request. Please try again.")
         }),
         None => {
             cata_log!(Warning, "CSRF token missing but required for this request");
-            Err(Status::Forbidden)
+            Err(MeltDown::new(MeltType::ValidationFailed, "CSRF token missing")
+                .with_context("request_type", "state_changing")
+                .with_user_message("Invalid request. Please try again."))
         }
     }
 }

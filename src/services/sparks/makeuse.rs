@@ -5,25 +5,20 @@ use std::sync::Mutex;
 use std::sync::OnceLock;
 use toml::Value as TomlValue;
 
-/// Template components registered by sparks
 static TEMPLATE_COMPONENTS: OnceLock<Mutex<TemplateComponents>> = OnceLock::new();
 
-/// Spark configuration registry (spark_name -> (manifest_config, overrides))
 static SPARK_CONFIGS: OnceLock<Mutex<HashMap<String, SparkConfig>>> = OnceLock::new();
 
-/// Initialize template registry
 pub fn init_template_registry() {
     let _ = TEMPLATE_COMPONENTS.get_or_init(|| Mutex::new(TemplateComponents::default()));
     cata_log!(Debug, "Template component registry initialized");
 }
 
-/// Initialize spark config registry
 pub fn init_spark_configs() {
     let _ = SPARK_CONFIGS.get_or_init(|| Mutex::new(HashMap::new()));
     cata_log!(Debug, "Spark config registry initialized");
 }
 
-/// Register a spark's manifest and default configuration
 pub fn register_spark_manifest(spark_name: &str, manifest: TomlValue, defaults: TomlValue) {
     if let Some(configs) = SPARK_CONFIGS.get() {
         if let Ok(mut configs) = configs.lock() {
@@ -44,7 +39,6 @@ pub fn register_spark_manifest(spark_name: &str, manifest: TomlValue, defaults: 
     }
 }
 
-/// Register configuration overrides from Catalyst.toml
 pub fn register_spark_overrides(spark_name: &str, overrides: TomlValue) {
     if let Some(configs) = SPARK_CONFIGS.get() {
         if let Ok(mut configs) = configs.lock() {
@@ -63,7 +57,6 @@ pub fn register_spark_overrides(spark_name: &str, overrides: TomlValue) {
     }
 }
 
-/// Get a spark's configuration value with cascading priority
 pub fn get_spark_config<T: std::str::FromStr>(spark_name: &str, key: &str) -> Option<T>
 where
     T::Err: std::fmt::Debug,
@@ -92,7 +85,6 @@ where
     None
 }
 
-/// Helper function to extract a typed value from TOML
 fn get_toml_value<T: std::str::FromStr>(value: &TomlValue, key: &str) -> Option<T>
 where
     T::Err: std::fmt::Debug,
@@ -115,7 +107,6 @@ where
     }
 }
 
-/// Get all configuration for a spark
 pub fn get_spark_all_config(spark_name: &str) -> HashMap<String, String> {
     let mut result = HashMap::new();
 
@@ -148,14 +139,12 @@ pub fn get_spark_all_config(spark_name: &str) -> HashMap<String, String> {
     result
 }
 
-/// Struct to hold a spark's configuration
 struct SparkConfig {
     manifest: TomlValue,
     defaults: TomlValue,
     overrides: TomlValue,
 }
 
-/// Register a header script
 pub fn register_head_script(spark_name: &str, script: String, dev_only: bool) {
     if let Some(components) = TEMPLATE_COMPONENTS.get() {
         if let Ok(mut components) = components.lock() {
@@ -165,7 +154,6 @@ pub fn register_head_script(spark_name: &str, script: String, dev_only: bool) {
     }
 }
 
-/// Register a footer script
 pub fn register_footer_script(spark_name: &str, script: String, dev_only: bool) {
     if let Some(components) = TEMPLATE_COMPONENTS.get() {
         if let Ok(mut components) = components.lock() {
@@ -175,7 +163,6 @@ pub fn register_footer_script(spark_name: &str, script: String, dev_only: bool) 
     }
 }
 
-/// Register a stylesheet
 pub fn register_head_style(spark_name: &str, style: String, dev_only: bool) {
     if let Some(components) = TEMPLATE_COMPONENTS.get() {
         if let Ok(mut components) = components.lock() {
@@ -185,7 +172,6 @@ pub fn register_head_style(spark_name: &str, style: String, dev_only: bool) {
     }
 }
 
-/// Register a meta tag
 pub fn register_meta_tag(spark_name: &str, meta: String, dev_only: bool) {
     if let Some(components) = TEMPLATE_COMPONENTS.get() {
         if let Ok(mut components) = components.lock() {
@@ -195,7 +181,6 @@ pub fn register_meta_tag(spark_name: &str, meta: String, dev_only: bool) {
     }
 }
 
-/// Get all template components for current environment
 pub fn get_template_components(is_dev: bool) -> TemplateComponentsView {
     if let Some(components) = TEMPLATE_COMPONENTS.get() {
         if let Ok(components) = components.lock() {
@@ -207,7 +192,6 @@ pub fn get_template_components(is_dev: bool) -> TemplateComponentsView {
     TemplateComponentsView::default()
 }
 
-/// Struct to manage template components
 #[derive(Default)]
 struct TemplateComponents {
     head_scripts: Vec<(String, String, bool)>,
@@ -255,7 +239,6 @@ impl TemplateComponents {
     }
 }
 
-/// View of template components for templates
 #[derive(Default, Serialize, Debug)]
 pub struct TemplateComponentsView {
     pub head_scripts: Vec<String>,
@@ -264,3 +247,4 @@ pub struct TemplateComponentsView {
     pub footer_scripts: Vec<String>,
     pub active_sparks: Vec<String>,
 }
+

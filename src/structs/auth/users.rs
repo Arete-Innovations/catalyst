@@ -1,7 +1,7 @@
 use crate::database::schema::users;
 use diesel::prelude::*;
 use diesel::Queryable;
-use rocket::FromForm;
+use rocket::form::FromForm;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -32,14 +32,14 @@ pub struct NewUser {
     pub role: String,
 }
 
-#[derive(FromForm)]
+#[derive(FromForm, Serialize, Deserialize, Clone)]
 pub struct LoginForm {
     pub username: String,
     pub password: String,
     pub authenticity_token: String,
 }
 
-#[derive(FromForm, Deserialize, Serialize)]
+#[derive(FromForm, Deserialize, Serialize, Clone)]
 pub struct RegisterForm {
     pub username: String,
     pub email: String,
@@ -55,3 +55,4 @@ pub struct UpdatePassword<'a> {
     pub password: &'a str,
     pub confirm_password: &'a str,
 }
+

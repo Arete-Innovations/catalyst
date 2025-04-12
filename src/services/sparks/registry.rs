@@ -4,7 +4,58 @@ use rocket::{Build, Rocket};
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
-static SPARK_REGISTRY: OnceLock<Mutex<HashMap<String, fn() -> Box<dyn Spark>>>> = OnceLock::new();
+pub struct SparkRegistry {
+    registered_sparks: HashMap<String, fn() -> Box<dyn Spark>>,
+    compatible_sparks: Vec<String>,
+    incompatible_sparks: Vec<String>,
+}
+
+impl SparkRegistry {
+    fn new() -> Self {
+        SparkRegistry {
+            registered_sparks: HashMap::new(),
+            compatible_sparks: Vec::new(),
+            incompatible_sparks: Vec::new(),
+        }
+    }
+
+    fn register(&mut self, name: &str, creator: fn() -> Box<dyn Spark>) {
+        if !self.registered_sparks.contains_key(name) {
+            self.registered_sparks.insert(name.to_string(), creator);
+
+            // Check availability (compatibility + enabled status)
+            let spark = creator();
+
+            if spark.is_available() {
+                self.compatible_sparks.push(name.to_string());
+            } else {
+                self.incompatible_sparks.push(name.to_string());
+
+                if !spark.is_compatible_with_environment() {
+                    cata_log!(Warning, format!("Spark '{}' is present but not compatible with current environment", spark.name()));
+                }
+
+                if !spark.is_enabled() {
+                    cata_log!(Warning, format!("Spark '{}' is disabled in configuration", spark.name()));
+                }
+            }
+
+            cata_log!(Info, format!("Registered spark: {}", name));
+        } else {
+            cata_log!(Debug, format!("Spark '{}' already registered, skipping duplicate registration", name));
+        }
+    }
+
+    fn get_compatible_sparks(&self) -> Vec<String> {
+        self.compatible_sparks.clone()
+    }
+
+    fn get_creator(&self, name: &str) -> Option<&fn() -> Box<dyn Spark>> {
+        self.registered_sparks.get(name)
+    }
+}
+
+static SPARK_REGISTRY: OnceLock<Mutex<SparkRegistry>> = OnceLock::new();
 
 pub trait Spark: Send + Sync + 'static {
     fn initialize(&mut self) -> Result<(), Box<dyn std::error::Error>>;
@@ -16,23 +67,34 @@ pub trait Spark: Send + Sync + 'static {
     fn description(&self) -> &str {
         "A Catalyst Spark module"
     }
+
+    // Default implementation returns true for backward compatibility
+    fn is_compatible_with_environment(&self) -> bool {
+        true
+    }
+
+    // Check if the spark is enabled in configuration
+    fn is_enabled(&self) -> bool {
+        // Read the 'enabled' configuration with default true
+        let name = self.name();
+        makeuse::get_spark_config::<bool>(name, "enabled").unwrap_or(true)
+    }
+
+    // Single method to check both environment compatibility and enabled status
+    fn is_available(&self) -> bool {
+        self.is_compatible_with_environment() && self.is_enabled()
+    }
 }
 
 pub fn register_spark(name: &str, creator: fn() -> Box<dyn Spark>) {
-    let registry = SPARK_REGISTRY.get_or_init(|| Mutex::new(HashMap::new()));
+    let registry = SPARK_REGISTRY.get_or_init(|| Mutex::new(SparkRegistry::new()));
     let mut registry_guard = registry.lock().unwrap();
-
-    if !registry_guard.contains_key(name) {
-        registry_guard.insert(name.to_string(), creator);
-        cata_log!(Info, format!("Registered spark: {}", name));
-    } else {
-        cata_log!(Debug, format!("Spark '{}' already registered, skipping duplicate registration", name));
-    }
+    registry_guard.register(name, creator);
 }
 
 pub fn init_registry() {
     if SPARK_REGISTRY.get().is_none() {
-        let _ = SPARK_REGISTRY.get_or_init(|| Mutex::new(HashMap::new()));
+        let _ = SPARK_REGISTRY.get_or_init(|| Mutex::new(SparkRegistry::new()));
         cata_log!(Debug, "Spark registry initialized");
     } else {
         cata_log!(Debug, "Spark registry already initialized");
@@ -80,7 +142,7 @@ impl rocket::fairing::Fairing for SparkLoggingFairing {
             if let Some(registry) = SPARK_REGISTRY.get() {
                 let registry_guard = registry.lock().unwrap();
                 for spark_name in sparks {
-                    if let Some(creator) = registry_guard.get(&spark_name) {
+                    if let Some(creator) = registry_guard.get_creator(&spark_name) {
                         let spark = creator();
                         println!(
                             "   \x1b[1;38;2;255;255;255m>>\x1b[0m \x1b[38;2;76;11;227m{}\x1b[0m \x1b[38;2;255;255;255m({})\x1b[0m",
@@ -104,7 +166,7 @@ pub fn get_available_sparks() -> Vec<String> {
     match SPARK_REGISTRY.get() {
         Some(registry) => {
             let registry_guard = registry.lock().unwrap();
-            let result = registry_guard.keys().cloned().collect::<Vec<String>>();
+            let result = registry_guard.get_compatible_sparks();
             cata_log!(Debug, format!("Available sparks from registry: {:?}", result));
             result
         }
@@ -139,7 +201,7 @@ impl SparkExtension for Rocket<Build> {
         for name_ref in spark_names.into_iter() {
             let name = name_ref.as_ref();
 
-            match registry_guard.get(name) {
+            match registry_guard.get_creator(name) {
                 Some(creator) => {
                     let mut spark = creator();
                     match spark.initialize() {
@@ -169,3 +231,4 @@ impl SparkExtension for Rocket<Build> {
         self.sparks(available)
     }
 }
+

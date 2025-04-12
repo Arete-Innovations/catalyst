@@ -58,8 +58,7 @@ impl CatalystLogger {
         // Create colorized log entry with only the level colored (like tracing crate)
         let color_code = level.color_code();
         let reset_code = "\x1b[0m";
-        let colored_log_entry = format!("{} [{}{}{}] {}\n", 
-            timestamp, color_code, level.as_str(), reset_code, message);
+        let colored_log_entry = format!("{} [{}{}{}] {}\n", timestamp, color_code, level.as_str(), reset_code, message);
 
         // Create plain log entry for file (no color codes)
         let file_log_entry = format!("{} [{}] {}\n", timestamp, level.as_str(), message);
@@ -91,8 +90,7 @@ impl CatalystLogger {
         // Create colorized log entry with only the level colored (like tracing crate)
         let color_code = level.color_code();
         let reset_code = "\x1b[0m";
-        let colored_log_entry = format!("{} [{}{}{}] {}\n", 
-            timestamp, color_code, level.as_str(), reset_code, message);
+        let colored_log_entry = format!("{} [{}{}{}] {}\n", timestamp, color_code, level.as_str(), reset_code, message);
 
         // Create plain log entry for file (no color codes)
         let file_log_entry = format!("{} [{}] {}\n", timestamp, level.as_str(), message);
@@ -129,24 +127,21 @@ pub fn setup_panic_hook() {
 macro_rules! cata_log {
     ($level:ident, $msg:expr) => {{
         let level_icon = match stringify!($level) {
-            "Trace" => "🔍",  // Magnifying glass
-            "Debug" => "🐞",  // Bug
-            "Info" => "ℹ️",   // Info
+            "Trace" => "🔍",   // Magnifying glass
+            "Debug" => "🐞",   // Bug
+            "Info" => "ℹ️",    // Info
             "Warning" => "⚠️", // Warning
             "Error" => "❌",   // Error
             _ => "•",
         };
-        
+
         // Formatted source location for easier debugging
         let src_loc = if module_path!().len() > 25 {
-            format!("{}:{}::{}", 
-                file!().split('/').last().unwrap_or(file!()), 
-                line!(),
-                module_path!().split("::").last().unwrap_or(""))
+            format!("{}:{}::{}", file!().split('/').last().unwrap_or(file!()), line!(), module_path!().split("::").last().unwrap_or(""))
         } else {
             format!("{}:{}", file!(), line!())
         };
-        
+
         let full_msg = format!("{} [{}] {}", level_icon, src_loc, $msg);
         $crate::services::logger::CatalystLogger::log($crate::services::logger::LogLevel::$level, &full_msg);
     }};
