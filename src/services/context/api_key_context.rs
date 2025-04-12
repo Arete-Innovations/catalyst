@@ -1,5 +1,4 @@
 use crate::cata_log;
-use crate::models::*;
 use crate::services::*;
 use crate::structs::*;
 use serde::Serialize;
@@ -24,7 +23,7 @@ impl ApiKeyContext {
             }
         };
 
-        let keys = match ApiKeys::get_for_user(user_id) {
+        let keys = match ApiKeys::get_by_user_id(user_id).await {
             Ok(keys) => Some(keys),
             Err(e) => {
                 cata_log!(Warning, format!("Failed to get API keys for user {}: {}", user_id, e));
@@ -51,7 +50,7 @@ impl ApiKeyContext {
             }
         };
 
-        let keys = match ApiKeys::get_for_user(user_id) {
+        let keys = match ApiKeys::get_by_user_id(user_id).await {
             Ok(keys) => Some(keys),
             Err(e) => {
                 cata_log!(Warning, format!("Failed to get API keys for user {}: {}", user_id, e));
@@ -73,7 +72,7 @@ impl ApiKeyContext {
             }
         };
 
-        let api_key = match get_api_key_by_id(key_id) {
+        let api_key = match ApiKeys::get_by_id(key_id).await {
             Ok(key) => {
                 if key.user_id != user_id {
                     cata_log!(Warning, format!("User {} attempted to access key {} belonging to user {}", user_id, key_id, key.user_id));
@@ -96,3 +95,4 @@ impl ApiKeyContext {
         Self { api_key, logs, user, keys: None }
     }
 }
+
