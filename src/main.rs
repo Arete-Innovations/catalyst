@@ -31,7 +31,6 @@ fn rocket() -> _ {
         .attach_user_guard(api::user_partials::user_partial_routes())
         .attach_api_guard(api::v1::api_v1_routes())
         .attach_admin_guard(api::admin_partials::admin_partial_routes())
-        .mount("/", home::partials())
         .mount("/public", FileServer::from(relative!("public")))
         .register("/", catchers![unauthorized, forbidden, not_found, internal_error, unprocessable_entity])
         .attach(Template::fairing())
@@ -55,4 +54,3 @@ fn rocket() -> _ {
         }))
         .attach(Gzip)
 }
-
