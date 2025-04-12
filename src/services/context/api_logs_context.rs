@@ -1,5 +1,4 @@
 use crate::cata_log;
-use crate::models::*;
 use crate::structs::*;
 use serde::Serialize;
 
@@ -25,7 +24,7 @@ impl ApiLogsContext {
             }
         };
 
-        let api_key = match get_api_key_by_id(key_id) {
+        let api_key = match ApiKeys::get_by_id(key_id).await {
             Ok(key) => {
                 if key.user_id != user_id {
                     cata_log!(Warning, format!("User {} attempted to access key {} belonging to user {}", user_id, key_id, key.user_id));
@@ -41,7 +40,7 @@ impl ApiLogsContext {
         };
 
         let logs = if api_key.is_some() {
-            match ApiKeyLogs::get_for_key(key_id) {
+            match ApiKeyLogs::get_by_api_key_id(key_id).await {
                 Ok(logs) => Some(logs.into_iter().take(DEFAULT_LOG_LIMIT).collect()),
                 Err(e) => {
                     cata_log!(Warning, format!("Failed to get logs for API key {}: {}", key_id, e));
@@ -66,7 +65,7 @@ impl ApiLogsContext {
             }
         };
 
-        let log = match get_api_key_log_by_id(log_id) {
+        let log = match ApiKeyLogs::get_by_id(log_id).await {
             Ok(log) => Some(log),
             Err(e) => {
                 cata_log!(Warning, format!("Failed to get log {}: {}", log_id, e));
@@ -81,7 +80,7 @@ impl ApiLogsContext {
             None => return Self::default(),
         };
 
-        let api_key = match get_api_key_by_id(api_key_id) {
+        let api_key = match ApiKeys::get_by_id(api_key_id).await {
             Ok(key) => {
                 if key.user_id != user_id {
                     cata_log!(Warning, format!("User {} attempted to access log for key {} belonging to user {}", user_id, api_key_id, key.user_id));
@@ -112,7 +111,7 @@ impl ApiLogsContext {
             }
         };
 
-        let keys = match ApiKeys::get_for_user(user_id) {
+        let keys = match ApiKeys::get_by_user_id(user_id).await {
             Ok(keys) => keys,
             Err(e) => {
                 cata_log!(Warning, format!("Failed to get API keys for user {}: {}", user_id, e));
@@ -135,20 +134,24 @@ impl ApiLogsContext {
         }
 
         let key_ids: Vec<i32> = keys.iter().map(|k| k.id).collect();
-
-        let logs = match ApiKeyLogs::get_for_multiple_keys(&key_ids, DEFAULT_LOG_LIMIT) {
-            Ok(logs) => Some(logs),
-            Err(e) => {
-                cata_log!(Warning, format!("Failed to get logs for user {}'s keys: {}", user_id, e));
-                None
+        let mut logs = Vec::new();
+        for key_id in key_ids.iter() {
+            match ApiKeyLogs::get_by_api_key_id(*key_id).await {
+                Ok(mut log) => {
+                    logs.append(&mut log);
+                }
+                Err(e) => {
+                    cata_log!(Warning, format!("Failed to get logs for API key {}: {}", key_id, e));
+                }
             }
-        };
+        }
 
         Self {
             api_key: None,
-            logs,
+            logs: Some(logs),
             log_detail: None,
             user,
         }
     }
 }
+
