@@ -59,7 +59,6 @@ pub fn not_found(req: &Request) -> Result<Template, Json<serde_json::Value>> {
         })));
     }
 
-    // Create a context for rendering the 404 page
     let context = app_context::BaseContext {
         lang: json!({}),
         translations: json!({}),
@@ -138,7 +137,6 @@ impl<'r> Responder<'r, 'static> for MeltDown {
                 401 => Redirect::to(uri!(home::get_login)).respond_to(req),
                 403 => Redirect::to(uri!(home::get_login)).respond_to(req),
                 404 => {
-                    // For 404 errors, render the not found page directly
                     let context = app_context::BaseContext {
                         lang: json!({}),
                         translations: json!({}),
@@ -151,7 +149,6 @@ impl<'r> Responder<'r, 'static> for MeltDown {
                     Template::render("oops/index", &context).respond_to(req)
                 }
                 _ => {
-                    // For other errors, render the error page with the appropriate message
                     let context = app_context::BaseContext {
                         lang: json!({}),
                         translations: json!({}),
@@ -167,4 +164,3 @@ impl<'r> Responder<'r, 'static> for MeltDown {
         }
     }
 }
-

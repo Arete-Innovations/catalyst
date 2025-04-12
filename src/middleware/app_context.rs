@@ -1,5 +1,5 @@
 use crate::cata_log;
-use crate::meltdown::{MeltDown, MeltType};
+use crate::meltdown::*;
 use crate::services::*;
 use once_cell::sync::Lazy;
 use rocket::async_trait;
@@ -189,4 +189,3 @@ pub fn verify_csrf_for_state_change(app_context: &AppContext<'_>, token: &str) -
         }
     }
 }
-

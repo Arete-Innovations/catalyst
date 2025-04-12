@@ -17,7 +17,7 @@ fn bucket_base_path(bucket: &StorageBucket, user: &Users) -> PathBuf {
 }
 
 pub async fn serve_file(bucket_str: &str, filename: &str, jwt_token: &str) -> Result<(ContentType, Vec<u8>), Status> {
-    let user = jwt_to_user(jwt_token)?;
+    let user = jwt_to_user(jwt_token).await.map_err(|err| err.status_code())?;
 
     let bucket = match bucket_str {
         "user_files" => StorageBucket::UserFiles,
@@ -39,3 +39,4 @@ pub async fn serve_file(bucket_str: &str, filename: &str, jwt_token: &str) -> Re
 
     Ok((content_type, file_bytes))
 }
+

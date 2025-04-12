@@ -1,4 +1,4 @@
-use crate::middleware::{AdminGuard, ApiKeyGuard, UserGuard};
+use crate::middleware::*;
 use rocket::route::Route;
 use rocket::Build;
 use rocket::Rocket;

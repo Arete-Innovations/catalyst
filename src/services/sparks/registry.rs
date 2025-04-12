@@ -23,7 +23,6 @@ impl SparkRegistry {
         if !self.registered_sparks.contains_key(name) {
             self.registered_sparks.insert(name.to_string(), creator);
 
-            // Check availability (compatibility + enabled status)
             let spark = creator();
 
             if spark.is_available() {
@@ -68,19 +67,15 @@ pub trait Spark: Send + Sync + 'static {
         "A Catalyst Spark module"
     }
 
-    // Default implementation returns true for backward compatibility
     fn is_compatible_with_environment(&self) -> bool {
         true
     }
 
-    // Check if the spark is enabled in configuration
     fn is_enabled(&self) -> bool {
-        // Read the 'enabled' configuration with default true
         let name = self.name();
         makeuse::get_spark_config::<bool>(name, "enabled").unwrap_or(true)
     }
 
-    // Single method to check both environment compatibility and enabled status
     fn is_available(&self) -> bool {
         self.is_compatible_with_environment() && self.is_enabled()
     }
@@ -231,4 +226,3 @@ impl SparkExtension for Rocket<Build> {
         self.sparks(available)
     }
 }
-

@@ -1,9 +1,16 @@
-use chrono::{Local, Utc};
+use chrono::Local;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::panic::{self, PanicHookInfo};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+#[derive(Clone, Copy)]
+enum TimestampPrecision {
+    Second,
+    Milli,
+    Nano,
+}
 
 pub enum LogLevel {
     Trace,
@@ -24,13 +31,11 @@ impl LogLevel {
         }
     }
 
-    pub fn color_code(&self) -> &'static str {
+    fn timestamp_precision(&self) -> TimestampPrecision {
         match self {
-            LogLevel::Trace => "\x1b[90m",   // Gray
-            LogLevel::Debug => "\x1b[36m",   // Cyan
-            LogLevel::Info => "\x1b[32m",    // Green
-            LogLevel::Warning => "\x1b[33m", // Yellow
-            LogLevel::Error => "\x1b[31m",   // Red
+            LogLevel::Trace => TimestampPrecision::Nano,
+            LogLevel::Debug => TimestampPrecision::Milli,
+            LogLevel::Info | LogLevel::Warning | LogLevel::Error => TimestampPrecision::Second,
         }
     }
 }
@@ -38,6 +43,25 @@ impl LogLevel {
 pub struct CatalystLogger;
 
 impl CatalystLogger {
+    fn get_timestamp(level: &LogLevel) -> String {
+        let precision = level.timestamp_precision();
+        let now = SystemTime::now();
+        let duration = now.duration_since(UNIX_EPOCH).unwrap_or_default();
+        let local_time = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+
+        match precision {
+            TimestampPrecision::Second => {
+                format!("{}-{}", duration.as_secs(), local_time)
+            }
+            TimestampPrecision::Milli => {
+                format!("{}.{:03}-{}", duration.as_secs(), duration.subsec_millis(), local_time)
+            }
+            TimestampPrecision::Nano => {
+                format!("{}.{:09}-{}", duration.as_secs(), duration.subsec_nanos(), local_time)
+            }
+        }
+    }
+
     pub fn log(level: LogLevel, message: &str) {
         let log_dir = "storage/logs";
         if let Err(e) = fs::create_dir_all(log_dir) {
@@ -46,24 +70,9 @@ impl CatalystLogger {
         }
         let file_path = Path::new(log_dir).join(format!("{}.log", level.as_str().to_lowercase()));
 
-        // Get current time as Unix timestamp
-        let unix_ts = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
-
-        // Get local time with timezone
-        let local_time = Local::now().format("%Y-%m-%d %H:%M:%S %Z").to_string();
-
-        // Create timestamp string with both Unix timestamp and human-readable time
-        let timestamp = format!("{}-{}", unix_ts, local_time);
-
-        // Create colorized log entry with only the level colored (like tracing crate)
-        let color_code = level.color_code();
-        let reset_code = "\x1b[0m";
-        let colored_log_entry = format!("{} [{}{}{}] {}\n", timestamp, color_code, level.as_str(), reset_code, message);
-
-        // Create plain log entry for file (no color codes)
+        let timestamp = Self::get_timestamp(&level);
         let file_log_entry = format!("{} [{}] {}\n", timestamp, level.as_str(), message);
 
-        // Write to file
         if let Err(e) = OpenOptions::new().append(true).create(true).open(&file_path).and_then(|mut file| file.write_all(file_log_entry.as_bytes())) {
             eprintln!("Failed to write log: {}", e);
         }
@@ -78,30 +87,12 @@ impl CatalystLogger {
             }
         }
 
-        // Get current time as Unix timestamp
-        let unix_ts = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
-
-        // Get local time with timezone
-        let local_time = Local::now().format("%Y-%m-%d %H:%M:%S %Z").to_string();
-
-        // Create timestamp string with both Unix timestamp and human-readable time
-        let timestamp = format!("{}-{}", unix_ts, local_time);
-
-        // Create colorized log entry with only the level colored (like tracing crate)
-        let color_code = level.color_code();
-        let reset_code = "\x1b[0m";
-        let colored_log_entry = format!("{} [{}{}{}] {}\n", timestamp, color_code, level.as_str(), reset_code, message);
-
-        // Create plain log entry for file (no color codes)
+        let timestamp = Self::get_timestamp(&level);
         let file_log_entry = format!("{} [{}] {}\n", timestamp, level.as_str(), message);
 
-        // Write to file
         if let Err(e) = OpenOptions::new().append(true).create(true).open(path).and_then(|mut file| file.write_all(file_log_entry.as_bytes())) {
             eprintln!("Failed to write log to {}: {}", path.display(), e);
         }
-
-        // Also print to console for immediate feedback
-        print!("{}", colored_log_entry);
     }
 }
 
@@ -118,7 +109,7 @@ pub fn setup_panic_hook() {
         } else {
             "unknown location".to_string()
         };
-        let full_msg = format!("🚨 Panic at {}: {}", location, payload);
+        let full_msg = format!("Panic at {}: {}", location, payload);
         CatalystLogger::log(LogLevel::Error, &full_msg);
     }));
 }
@@ -126,23 +117,14 @@ pub fn setup_panic_hook() {
 #[macro_export]
 macro_rules! cata_log {
     ($level:ident, $msg:expr) => {{
-        let level_icon = match stringify!($level) {
-            "Trace" => "🔍",   // Magnifying glass
-            "Debug" => "🐞",   // Bug
-            "Info" => "ℹ️",    // Info
-            "Warning" => "⚠️", // Warning
-            "Error" => "❌",   // Error
-            _ => "•",
-        };
-
-        // Formatted source location for easier debugging
         let src_loc = if module_path!().len() > 25 {
             format!("{}:{}::{}", file!().split('/').last().unwrap_or(file!()), line!(), module_path!().split("::").last().unwrap_or(""))
         } else {
             format!("{}:{}", file!(), line!())
         };
 
-        let full_msg = format!("{} [{}] {}", level_icon, src_loc, $msg);
+        let full_msg = format!("[{}] {}", src_loc, $msg);
         $crate::services::logger::CatalystLogger::log($crate::services::logger::LogLevel::$level, &full_msg);
     }};
 }
+

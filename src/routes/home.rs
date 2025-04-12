@@ -1,5 +1,5 @@
 use crate::cata_log;
-use crate::meltdown::MeltDown;
+use crate::meltdown::*;
 use crate::middleware::*;
 use crate::routes::*;
 use crate::structs::*;
@@ -153,19 +153,4 @@ pub async fn page_not_found(app_context: AppContext<'_>) -> Template {
 
 pub fn routes() -> Vec<Route> {
     routes![get_home, page_not_found, get_login, get_logout, get_register, post_login, post_register]
-}
-
-// HTMX partial routes for home module
-#[get("/partials/login-form")]
-fn login_form_partial(_app_context: AppContext<'_>) -> HtmxResult {
-    Ok(HtmxSuccess::with_content("<form hx-post='/auth/login' hx-swap='outerHTML'> ... Login form fields ... </form>"))
-}
-
-#[get("/partials/register-form")]
-fn register_form_partial(_app_context: AppContext<'_>) -> HtmxResult {
-    Ok(HtmxSuccess::with_content("<form hx-post='/auth/register' hx-swap='outerHTML'> ... Register form fields ... </form>"))
-}
-
-pub fn partials() -> Vec<Route> {
-    routes![login_form_partial, register_form_partial]
 }
