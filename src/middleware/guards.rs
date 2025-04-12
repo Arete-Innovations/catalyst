@@ -1,4 +1,3 @@
-use crate::cata_log;
 use crate::meltdown::*;
 use crate::middleware::*;
 use crate::structs::*;
@@ -58,10 +57,6 @@ impl<'r> FromRequest<'r> for ApiKeyGuard {
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let auth_header = req.headers().get_one("Authorization");
-        let request_path = req.uri().path().to_string();
-        let request_method = req.method().to_string();
-        let request_ip = req.client_ip().map(|ip| ip.to_string()).unwrap_or_else(|| "unknown".to_string());
-
         match auth_header {
             Some(value) if value.starts_with("Bearer ") => {
                 let token = value.trim_start_matches("Bearer ").trim();
@@ -71,23 +66,9 @@ impl<'r> FromRequest<'r> for ApiKeyGuard {
                     return Error((Status::Unauthorized, error));
                 }
 
-                match ApiKeys::validate_token(token) {
-                    Ok(api_key) => {
-                        // Log this API request
-                        if let Err(e) = ApiKeyLogs::log_request(
-                            api_key.id,
-                            &request_method,
-                            &request_path,
-                            &request_ip,
-                            200, // We'll assume success; in a real app, we'd update this after the request completes
-                        ) {
-                            cata_log!(Warning, format!("Failed to log API request: {}", e.log_message()));
-                        }
-
-                        Success(ApiKeyGuard(api_key))
-                    }
+                match ApiKeys::validate_token(token).await {
+                    Ok(api_key) => Success(ApiKeyGuard(api_key)),
                     Err(_) => {
-                        // Create a new MeltDown for the invalid API key
                         let error = MeltDown::new(MeltType::Forbidden, "Invalid API key");
                         Error((Status::Forbidden, error))
                     }

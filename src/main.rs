@@ -24,28 +24,23 @@ use services::*;
 fn rocket() -> _ {
     bootstrap();
     cata_log!(Info, "Starting server...");
-    let auth_routes = public::auth::routes();
-    let admin_routes = private::admin::routes();
-    let user_routes = private::user::routes();
-    let home_routes = public::home::routes();
-
-    let all_routes = auth_routes
-        .into_iter()
-        .chain(admin_routes.into_iter())
-        .chain(user_routes.into_iter())
-        .chain(home_routes.into_iter())
-        .collect::<Vec<_>>();
-
     rocket::build()
-        .mount("/", all_routes)
+        .mount("/", home::routes())
+        .attach_admin_guard(admin::admin_routes())
+        .attach_user_guard(user::user_routes())
+        .attach_user_guard(api::user_partials::user_partial_routes())
+        .attach_api_guard(api::v1::api_v1_routes())
+        .attach_admin_guard(api::admin_partials::admin_partial_routes())
+        .mount("/", home::partials())
         .mount("/public", FileServer::from(relative!("public")))
-        .register("/", catchers![unauthorized, not_found])
+        .register("/", catchers![unauthorized, forbidden, not_found, internal_error, unprocessable_entity])
         .attach(Template::fairing())
         .attach(CacheControlFairing)
         .attach(rocket_csrf_token::Fairing::default())
+        .attach(api_logger::ApiLogFairing)
         .attach(sparks::SparkLoggingFairing)
         .all_sparks()
-        .attach(AdHoc::on_liftoff("Start Scheduler", |_rocket| {
+        .attach(AdHoc::on_liftoff("Cronjob Scheduler", |_rocket| {
             Box::pin(async move {
                 spawn(scheduler());
                 cata_log!(Info, "Scheduler has started.");
@@ -60,3 +55,4 @@ fn rocket() -> _ {
         }))
         .attach(Gzip)
 }
+
