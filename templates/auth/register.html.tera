@@ -5,7 +5,7 @@
       <h1 class="center-align">{{ language.app_title }}</h1>
       <div class="card">
         <div class="card-content">
-          <form action="/register" method="post">
+          <form action="/auth/register" method="post">
             {% if csrf_token %}
             <input type="hidden" name="authenticity_token" value="{{ csrf_token }}">
             {% endif %}

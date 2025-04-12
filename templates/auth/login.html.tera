@@ -6,7 +6,7 @@
         <div class="card">
           <div class="card-content">
             <span class="card-title  center-align"><b>{{ title }}</b></span>
-            <form action="/login" method="POST">
+            <form action="/auth/login" method="POST">
               {% if csrf_token %}
               <input type="hidden" name="authenticity_token" value="{{ csrf_token }}">
               {% endif %}
