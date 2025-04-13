@@ -13,6 +13,8 @@ enum TimestampPrecision {
 }
 
 pub enum LogLevel {
+    CronjobExecution,
+    CronjobError,
     Trace,
     Debug,
     Info,
@@ -23,6 +25,8 @@ pub enum LogLevel {
 impl LogLevel {
     pub fn as_str(&self) -> &'static str {
         match self {
+            LogLevel::CronjobExecution => "CRONJOB",
+            LogLevel::CronjobError => "CRONJOB_ERROR",
             LogLevel::Trace => "TRACE",
             LogLevel::Debug => "DEBUG",
             LogLevel::Info => "INFO",
@@ -34,7 +38,7 @@ impl LogLevel {
     fn timestamp_precision(&self) -> TimestampPrecision {
         match self {
             LogLevel::Trace => TimestampPrecision::Nano,
-            LogLevel::Debug => TimestampPrecision::Milli,
+            LogLevel::Debug | LogLevel::CronjobExecution | LogLevel::CronjobError => TimestampPrecision::Milli,
             LogLevel::Info | LogLevel::Warning | LogLevel::Error => TimestampPrecision::Second,
         }
     }

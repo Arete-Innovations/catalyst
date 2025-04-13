@@ -61,17 +61,24 @@ layout {
     }
 
     tab name="⏱️ Cronjobs" {
-        pane split_direction="horizontal" {
-            pane name="Interactive Cronjob Manager" command="bash" {
-                args "-c" "blast cronjobs interactive"
-            }
+        pane split_direction="horizontal" size="25%" {
             pane split_direction="vertical" {
-                pane name="Job Execution Log" command="bash" {
-                    args "-c" "if [ -d \"storage/cronjobs\" ]; then tail -n100 -f storage/cronjobs/execution.log; else echo 'No job execution log found' > /tmp/cronjob_missing.log && tail -f /tmp/cronjob_missing.log; fi"
+                pane name="Cronjobs" command="bash" size="40%" {
+                    args "-c" "blast cronjobs live"
                 }
-                pane name="Error Log" command="bash" {
-                    args "-c" "if [ -d \"storage/cronjobs\" ]; then tail -n50 -f storage/cronjobs/errors.log; else echo 'No job errors log found' > /tmp/cronjob_errors_missing.log && tail -f /tmp/cronjob_errors_missing.log; fi"
+                pane name="Interactive Cronjob Manager" command="bash" {
+                    args "-c" "blast cronjobs interactive"
                 }
+            }
+
+
+        }
+        pane split_direction="horizontal" {
+            pane name="Job Execution Log" command="bash" {
+                args "-c" "tail -n100 -f storage/logs/cronjob.log"
+            }
+            pane name="Error Log" command="bash" {
+                args "-c" "tail -n100 -f storage/logs/cronjob_error.log"
             }
         }
     }

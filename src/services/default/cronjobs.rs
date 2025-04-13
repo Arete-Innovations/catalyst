@@ -20,7 +20,7 @@ pub async fn scheduler() {
     let mut interval = time::interval(Duration::from_secs(1));
     loop {
         interval.tick().await;
-        cata_log!(Debug, "Checking scheduled jobs...");
+        cata_log!(CronjobExecution, "Checking scheduled jobs...");
 
         let mut connection = establish_connection();
         update_jobs(&mut connection, &mut jobs);
@@ -31,14 +31,14 @@ pub async fn scheduler() {
                 let job_name = job.cronjob.name.clone();
                 {
                     let msg = format!("Running job {}", job_name);
-                    cata_log!(Info, msg);
+                    cata_log!(CronjobExecution, msg);
                 }
 
                 let job_name_clone = job_name.clone();
                 tokio::spawn(async move {
                     if let Err(err) = run_cronjob(&job_name_clone).await {
                         let msg = format!("Failed to run job {}: {}", job_name_clone, err);
-                        cata_log!(Error, msg);
+                        cata_log!(CronjobError, msg);
                     }
                 });
 
@@ -48,7 +48,7 @@ pub async fn scheduler() {
                     let msg_prefix = format!("Failed to update last run for job {}: ", job.cronjob.id);
                     if let Err(err) = update_last_run(&mut connection, job.cronjob.id) {
                         let full_msg = format!("{}{}", msg_prefix, err);
-                        cata_log!(Error, full_msg);
+                        cata_log!(CronjobError, full_msg);
                     }
                 }
             }
@@ -66,12 +66,12 @@ fn update_jobs(conn: &mut PgConnection, jobs: &mut HashMap<i32, ScheduledJob>) {
             }
             {
                 let msg = format!("Loaded {} cronjobs", jobs.len());
-                cata_log!(Debug, msg);
+                cata_log!(CronjobExecution, msg);
             }
         }
         Err(err) => {
             let msg = format!("Failed to load cronjobs: {}", err);
-            cata_log!(Error, msg);
+            cata_log!(CronjobError, msg);
         }
     }
 }
@@ -81,7 +81,7 @@ async fn run_cronjob(job_name: &str) -> Result<(), String> {
 
     if exec_status.success() {
         let msg = format!("Job {} executed successfully", job_name);
-        cata_log!(Info, msg);
+        cata_log!(CronjobExecution, msg);
         Ok(())
     } else {
         Err(format!("Job {} failed with status {:?}", job_name, exec_status))
@@ -97,7 +97,8 @@ fn update_last_run(conn: &mut PgConnection, job_id: i32) -> Result<(), diesel::r
         .map(|_| ())
         .map_err(|err| {
             let msg = format!("Failed to update last run for job {}: {}", job_id, err);
-            cata_log!(Error, msg);
+            cata_log!(CronjobError, msg);
             err
         })
 }
+
