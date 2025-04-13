@@ -57,6 +57,12 @@ pub fn bootstrap() {
         cata_log!(Info, format!("Environment: {}", config.settings.environment));
     }
 
+    cata_log!(Debug, "Initializing database connection pools");
+    if let Err(e) = crate::database::db::init_connection_pools() {
+        cata_log!(Error, format!("Failed to initialize database connection pools: {}", e));
+        panic!("Database initialization failed: {}", e);
+    }
+
     cata_log!(Debug, "Initializing core registries");
     registry::init_registry();
     makeuse::init_spark_configs();

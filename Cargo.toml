@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 bcrypt = "0.17.0"
 chrono = { version = "0.4.39", features = ["serde"] }
-diesel = { version = "2.2.7", features = ["postgres", "64-column-tables", "chrono", "serde_json"] }
+diesel = { version = "2.2.7", features = ["postgres", "64-column-tables", "chrono", "serde_json", "r2d2"] }
 dotenv = "0.15.0"
 flate2 = "1.0.35"
 jsonwebtoken = "9.3.1"
