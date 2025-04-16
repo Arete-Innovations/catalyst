@@ -5,8 +5,10 @@ use serde::Serialize;
 #[derive(Serialize, Debug, Default)]
 pub struct ApiLogsContext {
     pub api_key: Option<ApiKeys>,
-    pub logs: Option<Vec<ApiKeyLogs>>,
-    pub log_detail: Option<ApiKeyLogs>,
+    pub request_logs: Option<Vec<ApiRequestLogs>>,
+    pub response_logs: Option<Vec<ApiResponseLogs>>,
+    pub request_log_detail: Option<ApiRequestLogs>,
+    pub response_log_detail: Option<ApiResponseLogs>,
     pub user: Option<Users>,
 }
 
@@ -39,11 +41,11 @@ impl ApiLogsContext {
             }
         };
 
-        let logs = if api_key.is_some() {
-            match ApiKeyLogs::get_by_api_key_id(key_id).await {
+        let request_logs = if api_key.is_some() {
+            match ApiRequestLogs::get_by_api_key_id(key_id).await {
                 Ok(logs) => Some(logs.into_iter().take(DEFAULT_LOG_LIMIT).collect()),
                 Err(e) => {
-                    cata_log!(Warning, format!("Failed to get logs for API key {}: {}", key_id, e));
+                    cata_log!(Warning, format!("Failed to get request logs for API key {}: {}", key_id, e));
                     None
                 }
             }
@@ -51,11 +53,18 @@ impl ApiLogsContext {
             None
         };
 
-        Self { api_key, logs, log_detail: None, user }
+        Self {
+            api_key,
+            request_logs,
+            response_logs: None,
+            request_log_detail: None,
+            response_log_detail: None,
+            user,
+        }
     }
 
-    pub async fn build_log_detail(user_id: i32, log_id: i32) -> Self {
-        cata_log!(Debug, format!("Building log detail for user_id: {} and log_id: {}", user_id, log_id));
+    pub async fn build_log_detail(user_id: i32, request_log_id: i32) -> Self {
+        cata_log!(Debug, format!("Building log detail for user_id: {} and request_log_id: {}", user_id, request_log_id));
 
         let user = match Users::get_user_by_id(user_id).await {
             Ok(user) => Some(user),
@@ -65,17 +74,17 @@ impl ApiLogsContext {
             }
         };
 
-        let log = match ApiKeyLogs::get_by_id(log_id).await {
+        let request_log = match ApiRequestLogs::get_by_id(request_log_id).await {
             Ok(log) => Some(log),
             Err(e) => {
-                cata_log!(Warning, format!("Failed to get log {}: {}", log_id, e));
+                cata_log!(Warning, format!("Failed to get request log {}: {}", request_log_id, e));
                 return Self::default();
             }
         };
 
-        let log_detail = log.clone();
+        let request_log_detail = request_log.clone();
 
-        let api_key_id = match &log {
+        let api_key_id = match &request_log {
             Some(l) => l.api_key_id,
             None => return Self::default(),
         };
@@ -95,7 +104,31 @@ impl ApiLogsContext {
             }
         };
 
-        Self { api_key, logs: None, log_detail, user }
+        let response_log_detail = match &request_log {
+            Some(req_log) => match ApiResponseLogs::get_by_request_log_id(req_log.id).await {
+                Ok(resp_logs) => {
+                    if resp_logs.is_empty() {
+                        None
+                    } else {
+                        resp_logs.into_iter().next()
+                    }
+                }
+                Err(e) => {
+                    cata_log!(Warning, format!("Failed to get response log for request {}: {}", req_log.id, e));
+                    None
+                }
+            },
+            None => None,
+        };
+
+        Self {
+            api_key,
+            request_logs: None,
+            response_logs: None,
+            request_log_detail,
+            response_log_detail,
+            user,
+        }
     }
 
     pub async fn build_all(user_id: i32) -> Self {
@@ -115,43 +148,35 @@ impl ApiLogsContext {
             Ok(keys) => keys,
             Err(e) => {
                 cata_log!(Warning, format!("Failed to get API keys for user {}: {}", user_id, e));
-                return Self {
-                    api_key: None,
-                    logs: None,
-                    log_detail: None,
-                    user,
-                };
+                return Self::default();
             }
         };
 
         if keys.is_empty() {
-            return Self {
-                api_key: None,
-                logs: None,
-                log_detail: None,
-                user,
-            };
+            return Self::default();
         }
 
         let key_ids: Vec<i32> = keys.iter().map(|k| k.id).collect();
-        let mut logs = Vec::new();
+        let mut request_logs = Vec::new();
+
         for key_id in key_ids.iter() {
-            match ApiKeyLogs::get_by_api_key_id(*key_id).await {
-                Ok(mut log) => {
-                    logs.append(&mut log);
+            match ApiRequestLogs::get_by_api_key_id(*key_id).await {
+                Ok(mut logs) => {
+                    request_logs.append(&mut logs);
                 }
                 Err(e) => {
-                    cata_log!(Warning, format!("Failed to get logs for API key {}: {}", key_id, e));
+                    cata_log!(Warning, format!("Failed to get request logs for API key {}: {}", key_id, e));
                 }
             }
         }
 
         Self {
             api_key: None,
-            logs: Some(logs),
-            log_detail: None,
+            request_logs: Some(request_logs),
+            response_logs: None,
+            request_log_detail: None,
+            response_log_detail: None,
             user,
         }
     }
 }
-

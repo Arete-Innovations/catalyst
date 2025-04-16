@@ -33,13 +33,19 @@ post_any = [
 [codegen.models]
 ignore= [
   "users",
-  "spatial_ref_sys"
+  "spatial_ref_sys",
+  "api_keys",
+  "api_request_logs",
+  "api_response_logs"
 ]
 
 [codegen.structs]
 ignore = [
   "users",
-  "spatial_ref_sys"
+  "spatial_ref_sys",
+  "api_keys",
+  "api_request_logs",
+  "api_response_logs"
 ]
 derives = [
   "Debug",
@@ -58,7 +64,10 @@ imports = [
 [codegen.structs.insertable]
 # Tables to skip insertable struct generation
 ignore = [
-  "spatial_ref_sys"
+  "spatial_ref_sys",
+  "api_keys",
+  "api_request_logs",
+  "api_response_logs"
 ]
 derives = [
   "Debug",
@@ -119,5 +128,3 @@ webfonts = [
   "webfonts/fa-v4compatibility.ttf",
   "webfonts/fa-v4compatibility.woff2"
 ]
-
-
