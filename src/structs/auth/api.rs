@@ -12,10 +12,10 @@ pub struct ApiKeys {
     pub key_hash: String,
     pub active: bool,
     pub revoked: bool,
+    pub last_used_at: Option<i64>,
+    pub expires_at: Option<i64>,
     pub created_at: i64,
     pub updated_at: i64,
-    pub expires_at: Option<i64>,
-    pub last_used_at: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Insertable)]
@@ -26,7 +26,7 @@ pub struct NewApiKey {
     pub key_hash: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Queryable, Identifiable)]
+#[derive(Debug, Serialize, Deserialize, Queryable, Identifiable, Clone)]
 #[diesel(table_name = api_request_logs)]
 pub struct ApiRequestLogs {
     pub id: i32,

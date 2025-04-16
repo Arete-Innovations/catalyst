@@ -53,13 +53,13 @@ impl ApiLogsContext {
             None
         };
 
-        Self { 
-            api_key, 
-            request_logs, 
+        Self {
+            api_key,
+            request_logs,
             response_logs: None,
-            request_log_detail: None, 
+            request_log_detail: None,
             response_log_detail: None,
-            user 
+            user,
         }
     }
 
@@ -104,33 +104,30 @@ impl ApiLogsContext {
             }
         };
 
-        // Get response log if it exists
         let response_log_detail = match &request_log {
-            Some(req_log) => {
-                match ApiResponseLogs::get_by_request_log_id(req_log.id).await {
-                    Ok(resp_logs) => {
-                        if resp_logs.is_empty() {
-                            None
-                        } else {
-                            Some(resp_logs[0].clone())
-                        }
-                    },
-                    Err(e) => {
-                        cata_log!(Warning, format!("Failed to get response log for request {}: {}", req_log.id, e));
+            Some(req_log) => match ApiResponseLogs::get_by_request_log_id(req_log.id).await {
+                Ok(resp_logs) => {
+                    if resp_logs.is_empty() {
                         None
+                    } else {
+                        resp_logs.into_iter().next()
                     }
+                }
+                Err(e) => {
+                    cata_log!(Warning, format!("Failed to get response log for request {}: {}", req_log.id, e));
+                    None
                 }
             },
             None => None,
         };
 
-        Self { 
-            api_key, 
-            request_logs: None, 
+        Self {
+            api_key,
+            request_logs: None,
             response_logs: None,
-            request_log_detail, 
+            request_log_detail,
             response_log_detail,
-            user 
+            user,
         }
     }
 
@@ -161,7 +158,7 @@ impl ApiLogsContext {
 
         let key_ids: Vec<i32> = keys.iter().map(|k| k.id).collect();
         let mut request_logs = Vec::new();
-        
+
         for key_id in key_ids.iter() {
             match ApiRequestLogs::get_by_api_key_id(*key_id).await {
                 Ok(mut logs) => {

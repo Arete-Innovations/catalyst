@@ -6,7 +6,8 @@ use serde::Serialize;
 #[derive(Serialize, Debug, Default)]
 pub struct ApiKeyContext {
     pub api_key: Option<ApiKeys>,
-    pub logs: Option<Vec<ApiKeyLogs>>,
+    pub request_logs: Option<Vec<ApiRequestLogs>>,
+    pub response_logs: Option<Vec<ApiResponseLogs>>,
     pub user: Option<Users>,
     pub keys: Option<Vec<ApiKeys>>,
 }
@@ -31,12 +32,16 @@ impl ApiKeyContext {
             }
         };
 
-        let logs = match ApiLogsContext::build_all(user_id).await.logs {
-            Some(logs) => Some(logs),
-            None => None,
-        };
+        let logs_context = ApiLogsContext::build_all(user_id).await;
+        let request_logs = logs_context.request_logs;
 
-        Self { api_key: None, logs, user, keys }
+        Self {
+            api_key: None,
+            request_logs,
+            response_logs: None,
+            user,
+            keys,
+        }
     }
 
     pub async fn build_keys(user_id: i32) -> Self {
@@ -58,7 +63,13 @@ impl ApiKeyContext {
             }
         };
 
-        Self { api_key: None, logs: None, user, keys }
+        Self {
+            api_key: None,
+            request_logs: None,
+            response_logs: None,
+            user,
+            keys,
+        }
     }
 
     pub async fn build_key(user_id: i32, key_id: i32) -> Self {
@@ -87,12 +98,15 @@ impl ApiKeyContext {
             }
         };
 
-        let logs = match ApiLogsContext::build_key_logs(user_id, key_id).await.logs {
-            Some(logs) => Some(logs),
-            None => None,
-        };
+        let logs_context = ApiLogsContext::build_key_logs(user_id, key_id).await;
+        let request_logs = logs_context.request_logs;
 
-        Self { api_key, logs, user, keys: None }
+        Self {
+            api_key,
+            request_logs,
+            response_logs: None,
+            user,
+            keys: None,
+        }
     }
 }
-

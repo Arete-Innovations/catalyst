@@ -1,7 +1,7 @@
 use crate::database::db::establish_connection;
+use crate::database::schema::api_keys::dsl as api_key_dsl;
 use crate::database::schema::api_request_logs::dsl as api_request_log_dsl;
 use crate::database::schema::api_response_logs::dsl as api_response_log_dsl;
-use crate::database::schema::api_keys::dsl as api_key_dsl;
 use crate::meltdown::*;
 use crate::structs::*;
 use diesel::prelude::*;
@@ -37,10 +37,7 @@ impl ApiKeys {
 
         match result {
             Ok(api_key) => {
-                diesel::update(api_key_dsl::api_keys.find(api_key.id))
-                    .set(api_key_dsl::last_used_at.eq(current_timestamp))
-                    .execute(&mut conn)
-                    .ok();
+                diesel::update(api_key_dsl::api_keys.find(api_key.id)).set(api_key_dsl::last_used_at.eq(current_timestamp)).execute(&mut conn).ok();
 
                 Ok(api_key)
             }
@@ -51,9 +48,7 @@ impl ApiKeys {
     pub async fn get_by_id(id: i32) -> Result<ApiKeys, MeltDown> {
         let mut conn = establish_connection();
 
-        let result = api_key_dsl::api_keys
-            .find(id)
-            .first::<ApiKeys>(&mut conn);
+        let result = api_key_dsl::api_keys.find(id).first::<ApiKeys>(&mut conn);
 
         match result {
             Ok(api_key) => Ok(api_key),
@@ -64,9 +59,7 @@ impl ApiKeys {
     pub async fn get_by_user_id(user_id: i32) -> Result<Vec<ApiKeys>, MeltDown> {
         let mut conn = establish_connection();
 
-        let result = api_key_dsl::api_keys
-            .filter(api_key_dsl::user_id.eq(user_id))
-            .load::<ApiKeys>(&mut conn);
+        let result = api_key_dsl::api_keys.filter(api_key_dsl::user_id.eq(user_id)).load::<ApiKeys>(&mut conn);
 
         match result {
             Ok(api_keys) => Ok(api_keys),
@@ -79,9 +72,7 @@ impl ApiRequestLogs {
     pub async fn create(new_log: NewApiRequestLog) -> Result<ApiRequestLogs, MeltDown> {
         let mut conn = establish_connection();
 
-        let result = diesel::insert_into(api_request_log_dsl::api_request_logs)
-            .values(&new_log)
-            .get_result(&mut conn);
+        let result = diesel::insert_into(api_request_log_dsl::api_request_logs).values(&new_log).get_result(&mut conn);
 
         match result {
             Ok(log) => Ok(log),
@@ -92,9 +83,7 @@ impl ApiRequestLogs {
     pub async fn get_by_id(id: i32) -> Result<ApiRequestLogs, MeltDown> {
         let mut conn = establish_connection();
 
-        let result = api_request_log_dsl::api_request_logs
-            .find(id)
-            .first::<ApiRequestLogs>(&mut conn);
+        let result = api_request_log_dsl::api_request_logs.find(id).first::<ApiRequestLogs>(&mut conn);
 
         match result {
             Ok(log) => Ok(log),
@@ -121,9 +110,7 @@ impl ApiResponseLogs {
     pub async fn create(new_log: NewApiResponseLog) -> Result<ApiResponseLogs, MeltDown> {
         let mut conn = establish_connection();
 
-        let result = diesel::insert_into(api_response_log_dsl::api_response_logs)
-            .values(&new_log)
-            .get_result(&mut conn);
+        let result = diesel::insert_into(api_response_log_dsl::api_response_logs).values(&new_log).get_result(&mut conn);
 
         match result {
             Ok(log) => Ok(log),
@@ -134,9 +121,7 @@ impl ApiResponseLogs {
     pub async fn get_by_id(id: i32) -> Result<ApiResponseLogs, MeltDown> {
         let mut conn = establish_connection();
 
-        let result = api_response_log_dsl::api_response_logs
-            .find(id)
-            .first::<ApiResponseLogs>(&mut conn);
+        let result = api_response_log_dsl::api_response_logs.find(id).first::<ApiResponseLogs>(&mut conn);
 
         match result {
             Ok(log) => Ok(log),
@@ -154,7 +139,9 @@ impl ApiResponseLogs {
 
         match result {
             Ok(logs) => Ok(logs),
-            Err(e) => Err(MeltDown::from(e).with_context("operation", "get_api_response_logs_by_request_log_id").with_context("request_log_id", request_log_id.to_string())),
+            Err(e) => Err(MeltDown::from(e)
+                .with_context("operation", "get_api_response_logs_by_request_log_id")
+                .with_context("request_log_id", request_log_id.to_string())),
         }
     }
 }

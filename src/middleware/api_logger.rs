@@ -2,11 +2,10 @@ use crate::cata_log;
 use crate::structs::*;
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::{Data, Request, Response};
-use std::time::{Instant, Duration};
-use std::collections::HashMap;
 use serde_json::Value as JsonValue;
+use std::collections::HashMap;
+use std::time::Instant;
 
-// Structure for storing the request start time and ID
 #[derive(Clone)]
 struct RequestInfo {
     id: i32,
@@ -31,27 +30,21 @@ impl Fairing for ApiLogFairing {
             if auth.starts_with("Bearer ") {
                 let token = auth.trim_start_matches("Bearer ").trim();
 
-                // Extract request data
                 let request_path = request.uri().path().to_string();
                 let request_method = request.method().to_string();
                 let request_ip = request.client_ip().map(|ip| ip.to_string()).unwrap_or_else(|| "unknown".to_string());
-                
-                // Extract headers
+
                 let mut headers = HashMap::new();
                 for header in request.headers().iter() {
-                    // Skip Authorization header to avoid logging sensitive data
                     if header.name() != "Authorization" {
                         headers.insert(header.name().to_string(), header.value().to_string());
                     }
                 }
-                
-                // Convert headers to JSON
+
                 let headers_json = serde_json::to_value(headers).unwrap_or(JsonValue::Null);
-                
-                // Extract content type and length
+
                 let content_type = request.headers().get_one("Content-Type").map(|s| s.to_string());
-                let content_length = request.headers().get_one("Content-Length")
-                    .and_then(|cl| cl.parse::<i32>().ok());
+                let content_length = request.headers().get_one("Content-Length").and_then(|cl| cl.parse::<i32>().ok());
 
                 if let Ok(api_key) = ApiKeys::get_api_key_by_token(token).await {
                     let new_request_log = NewApiRequestLog {
@@ -63,16 +56,16 @@ impl Fairing for ApiLogFairing {
                         request_content_type: content_type.clone(),
                         request_content_length: content_length,
                     };
-                    
+
                     match ApiRequestLogs::create(new_request_log).await {
                         Ok(log) => {
                             let request_info = RequestInfo {
                                 id: log.id,
                                 start_time: Instant::now(),
-                                content_type: content_type,
-                                content_length: content_length,
+                                content_type,
+                                content_length,
                             };
-                            
+
                             request.local_cache(|| request_info);
                             cata_log!(Debug, format!("API request logged with ID {}", log.id));
                         }
@@ -93,29 +86,26 @@ impl Fairing for ApiLogFairing {
             let status = response.status().code as i32;
             let elapsed_time = request_info.start_time.elapsed();
             let response_time_ms = elapsed_time.as_millis() as i32;
-            
-            // Extract response headers
+
             let mut headers = HashMap::new();
             for header in response.headers().iter() {
                 headers.insert(header.name().to_string(), header.value().to_string());
             }
-            
-            // Convert headers to JSON
+
             let headers_json = serde_json::to_value(headers).unwrap_or(JsonValue::Null);
-            
-            // Get content type and length from response
+
             let content_type = response.content_type().map(|ct| ct.to_string());
-            let content_length = response.body_size();
-            
+            let content_length = response.headers().get_one("Content-Length").and_then(|v| v.parse::<i32>().ok());
+
             let new_response_log = NewApiResponseLog {
                 request_log_id: id,
                 response_status: status,
-                response_time_ms: response_time_ms,
+                response_time_ms: Some(response_time_ms),
                 response_content_type: content_type,
                 response_content_length: content_length.map(|len| len as i32),
                 response_headers: Some(headers_json),
             };
-            
+
             match ApiResponseLogs::create(new_response_log).await {
                 Ok(log) => {
                     cata_log!(Debug, format!("API response logged with ID {} for request {}", log.id, id));
