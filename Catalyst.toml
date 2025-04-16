@@ -64,7 +64,7 @@ imports = [
 [codegen.structs.insertable]
 # Tables to skip insertable struct generation
 ignore = [
-  "spatial_ref_sys"
+  "spatial_ref_sys",
   "api_keys",
   "api_request_logs",
   "api_response_logs"
