@@ -120,11 +120,6 @@ impl Users {
         .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?
     }
 
-    pub async fn is_admin_by_id(id: i32) -> Result<bool, MeltDown> {
-        let user = Self::get_user_by_id(id).await?;
-        Ok(user.role == "admin")
-    }
-
     pub async fn register_user(register: RegisterForm) -> Result<(), MeltDown> {
         task::spawn_blocking(move || {
             let mut conn = establish_connection();
@@ -336,4 +331,3 @@ impl Users {
         Ok(())
     }
 }
-
