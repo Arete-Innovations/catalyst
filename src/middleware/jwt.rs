@@ -1,16 +1,20 @@
 use crate::cata_log;
 use crate::meltdown::*;
 use crate::structs::*;
-use jsonwebtoken::{decode, DecodingKey, Validation};
+use chrono::{Duration, Utc};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header as JWTHeader, Validation};
 use rocket::async_trait;
+use rocket::http::Cookie;
 use rocket::request::{self, FromRequest, Outcome, Request};
 use serde::{Deserialize, Serialize};
 use std::env;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
     pub sub: String,
     pub exp: usize,
+    #[serde(default)]
+    pub remember: bool,
 }
 
 pub struct JWT(pub Claims);
@@ -31,6 +35,8 @@ impl<'r> FromRequest<'r> for JWT {
             Some(cookie) => cookie,
             None => {
                 let error = MeltDown::new(MeltType::MissingToken, "No JWT token in cookies");
+                cookies.remove(Cookie::new("token", ""));
+                cookies.remove(Cookie::new("user_id", ""));
                 return Outcome::Error((error.status_code(), error));
             }
         };
@@ -56,23 +62,46 @@ impl<'r> FromRequest<'r> for JWT {
                 if let Some(user_id_cookie) = cookies.get("user_id") {
                     let user_id_from_cookie = user_id_cookie.value();
                     let user_id_from_jwt = &token_data.claims.sub;
-
                     if user_id_from_cookie != user_id_from_jwt {
                         let error = MeltDown::new(MeltType::InvalidToken, format!("JWT/Cookie User ID mismatch: Cookie='{}', JWT='{}'", user_id_from_cookie, user_id_from_jwt));
                         cata_log!(Warning, error.log_message());
+                        cookies.remove(Cookie::new("token", ""));
+                        cookies.remove(Cookie::new("user_id", ""));
                         return Outcome::Error((error.status_code(), error));
                     }
-                } else {
-                    let error = MeltDown::new(MeltType::MissingToken, "No user_id cookie found");
-                    cata_log!(Warning, error.log_message());
-                    return Outcome::Error((error.status_code(), error));
                 }
 
-                Outcome::Success(JWT(token_data.claims))
+                let mut claims = token_data.claims.clone();
+                let now_ts = Utc::now().timestamp() as usize;
+                let remaining = claims.exp.saturating_sub(now_ts);
+
+                cata_log!(Debug, format!("JWT TTL check for user {}: remaining {} seconds", claims.sub, remaining));
+
+                let (refresh_threshold, extension) = if claims.remember {
+                    (Duration::days(1).num_seconds() as usize, Duration::days(7))
+                } else {
+                    (Duration::hours(1).num_seconds() as usize, Duration::hours(10))
+                };
+                if remaining < refresh_threshold {
+                    let new_exp = (Utc::now() + extension).timestamp() as usize;
+                    claims.exp = new_exp;
+                    match encode(&JWTHeader::default(), &claims, &EncodingKey::from_secret(secret.as_ref())) {
+                        Ok(new_token) => {
+                            cata_log!(Debug, format!("Regenerating JWT for user {}: new expiry at {} (in {}s)", claims.sub, new_exp, new_exp.saturating_sub(now_ts)));
+                            cookies.add(Cookie::build(Cookie::new("token", new_token)).http_only(true).secure(true).build());
+                        }
+                        Err(e) => cata_log!(Error, format!("Failed to regenerate JWT: {}", e)),
+                    }
+                }
+
+                Outcome::Success(JWT(claims))
             }
             Err(e) => {
                 let error = MeltDown::from(e);
                 cata_log!(Warning, error.log_message());
+
+                cookies.remove(Cookie::new("token", ""));
+                cookies.remove(Cookie::new("user_id", ""));
                 Outcome::Error((error.status_code(), error))
             }
         }
@@ -81,11 +110,8 @@ impl<'r> FromRequest<'r> for JWT {
 
 pub async fn jwt_to_user(jwt_token: &str) -> Result<Users, MeltDown> {
     let secret = env::var("JWT_SECRET").map_err(|e| MeltDown::new(MeltType::ConfigurationError, format!("JWT_SECRET not set: {}", e)))?;
-
     let token_data = decode::<Claims>(jwt_token, &DecodingKey::from_secret(secret.as_ref()), &Validation::default()).map_err(|e| MeltDown::new(MeltType::InvalidToken, format!("Invalid JWT: {}", e)))?;
-
     let user_id: i32 = token_data.claims.sub.parse().map_err(|e| MeltDown::new(MeltType::InvalidToken, format!("Invalid user ID in JWT: {}", e)))?;
-
     Users::get_user_by_id(user_id).await
 }
 

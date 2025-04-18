@@ -32,11 +32,13 @@ async fn post_login(login_form: Form<LoginForm>, cookies: &CookieJar<'_>, app_co
 
     match user.verify_password(login.password.clone()).await {
         Ok(true) => {
-            let expiration = Utc::now().checked_add_signed(Duration::seconds(86400)).unwrap_or_else(|| Utc::now()).timestamp();
-
+            let remember = login.remember_me.unwrap_or(false);
+            let expiry_duration = if remember { Duration::days(7) } else { Duration::hours(10) };
+            let expiration = Utc::now().checked_add_signed(expiry_duration).unwrap_or_else(|| Utc::now()).timestamp();
             let claims = Claims {
                 sub: user.id.to_string(),
                 exp: expiration as usize,
+                remember,
             };
 
             let token = match encode(&JWTHeader::default(), &claims, &EncodingKey::from_secret(env::var("JWT_SECRET").map_err(|e| MeltDown::from(e))?.as_ref())) {
@@ -48,8 +50,8 @@ async fn post_login(login_form: Form<LoginForm>, cookies: &CookieJar<'_>, app_co
                 }
             };
 
-            cookies.add(Cookie::new("token", token));
-            cookies.add(Cookie::new("user_id", user.id.to_string()));
+            cookies.add(Cookie::build(Cookie::new("token", token.clone())).http_only(true).secure(true).build());
+            cata_log!(Debug, format!("Issuing JWT for user {}: expires in {} seconds", user.id, expiry_duration.num_seconds()));
             cata_log!(Info, format!("User {} logged in successfully", user.username));
 
             let is_admin = Users::is_admin(user.id).await.unwrap_or(false);
@@ -66,8 +68,8 @@ async fn post_login(login_form: Form<LoginForm>, cookies: &CookieJar<'_>, app_co
 
 #[get("/auth/logout")]
 fn get_logout(cookies: &CookieJar<'_>) -> Flash<Redirect> {
-    cookies.remove(Cookie::build("token"));
-    cookies.remove(Cookie::build("user_id"));
+    cookies.remove(Cookie::new("token", ""));
+    cookies.remove(Cookie::new("user_id", ""));
     cata_log!(Info, "User logged out");
     Flash::success(Redirect::to(uri!(get_login)), "Successfully logged out.")
 }
@@ -154,3 +156,4 @@ pub async fn page_not_found(app_context: AppContext<'_>) -> Template {
 pub fn routes() -> Vec<Route> {
     routes![get_home, page_not_found, get_login, get_logout, get_register, post_login, post_register]
 }
+

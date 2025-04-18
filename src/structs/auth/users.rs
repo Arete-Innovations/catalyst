@@ -37,6 +37,7 @@ pub struct LoginForm {
     pub username: String,
     pub password: String,
     pub authenticity_token: String,
+    pub remember_me: Option<bool>,
 }
 
 #[derive(FromForm, Deserialize, Serialize, Clone)]
@@ -55,4 +56,3 @@ pub struct UpdatePassword<'a> {
     pub password: &'a str,
     pub confirm_password: &'a str,
 }
-
