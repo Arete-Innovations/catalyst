@@ -9,13 +9,16 @@ MAGENTA='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+MARKER=0
+
+
+
 process_line() {
   local line="$1"
-  if [[ $line =~ \[([0-9]{4}-[0-9]{2}-[0-9]{2})[[:space:]]([0-9]{2}:[0-9]{2}:[0-9]{2})\][[:space:]]\[([A-Z]+)\] ]]; then
-    local time=${BASH_REMATCH[2]}
-    local level=${BASH_REMATCH[3]}
-    
-    local message=$(echo "$line" | sed -E 's/\[[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\] \[[A-Z]+\] //')
+  if [[ $line =~ ([\]\[ 0-9.:-]+)\ \[([A-Z]{2,9})\]\ (.*) ]]; then
+    local time=${BASH_REMATCH[1]}
+    local level=${BASH_REMATCH[2]}
+    local message=${BASH_REMATCH[3]}
     
     local color=$NC
     case $level in
@@ -34,15 +37,26 @@ process_line() {
       "DEBUG")
         color=$CYAN
         ;;
+      "TRACE")
+        color=$MAGENTA
+        local TIMED=$(echo $time | grep -Po "^[\d.]+")
+        if [ $MARKER = 0 ]; then
+          MARKER=$TIMED
+        else
+          echo "Trace complete: $(calc $TIMED-$MARKER)s"
+          MARKER=0
+        fi
+        ;;
     esac
     
-    echo -e "$time ${color}$message${NC}"
+    echo -e "$time [${color}$level${NC}] $message"
+    
   else
     echo "$line"
   fi
 }
 
-LOG_FILE="storage/blast/blast.log"
+LOG_FILE="$1"
 NUM_LINES="200"
 
 if [ ! -f "$LOG_FILE" ]; then
