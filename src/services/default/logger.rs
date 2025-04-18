@@ -81,23 +81,6 @@ impl CatalystLogger {
             eprintln!("Failed to write log: {}", e);
         }
     }
-
-    pub fn log_to_path<P: AsRef<Path>>(path: P, level: LogLevel, message: &str) {
-        let path = path.as_ref();
-        if let Some(dir) = path.parent() {
-            if let Err(e) = fs::create_dir_all(dir) {
-                eprintln!("Failed to create directory {}: {}", dir.display(), e);
-                return;
-            }
-        }
-
-        let timestamp = Self::get_timestamp(&level);
-        let file_log_entry = format!("{} [{}] {}\n", timestamp, level.as_str(), message);
-
-        if let Err(e) = OpenOptions::new().append(true).create(true).open(path).and_then(|mut file| file.write_all(file_log_entry.as_bytes())) {
-            eprintln!("Failed to write log to {}: {}", path.display(), e);
-        }
-    }
 }
 
 pub fn setup_panic_hook() {
@@ -131,4 +114,3 @@ macro_rules! cata_log {
         $crate::services::logger::CatalystLogger::log($crate::services::logger::LogLevel::$level, &full_msg);
     }};
 }
-
