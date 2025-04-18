@@ -47,8 +47,9 @@ pub fn forbidden(req: &Request) -> Result<Redirect, Json<serde_json::Value>> {
 
 #[catch(404)]
 pub fn not_found(req: &Request) -> Result<Template, Json<serde_json::Value>> {
+    cata_log!(Trace, format!("TESTING"));
     cata_log!(Warning, format!("Not found: {}", req.uri()));
-
+    
     if req.uri().path().starts_with("/api") || accepts_json(req) {
         let error = MeltDown::new(MeltType::NotFound, "Resource");
         return Err(Json(json!({

@@ -8,19 +8,19 @@ layout {
 
     tab name="💥 Dashboard" focus=true {
         pane split_direction="vertical" {
-            pane split_direction="horizontal" size="50%" {
+            pane split_direction="horizontal" size="48%" {
                 pane name="Server Output" command="bash" size="60%" {
                     args "-c" "tail -n100 -f storage/logs/server.log"
                 }
-                pane name="Warning Log" command="bash" size="20%" {
-                    args "-c" "tail -n30 -f storage/logs/warning.log"
+                pane name="Debug trace log" command="bash" size="20%" {
+                    args "-c" "storage/blast/blast_log.sh storage/logs/trace.log"
                 }
                 pane name="Error Log" command="bash" size="20%" {
                     args "-c" "tail -n30 -f storage/logs/error.log"
                 }
             }
 
-            pane split_direction="horizontal" size="25%" {
+            pane split_direction="horizontal" size="30%" {
                 pane split_direction="vertical" name="📬 Routes" command="bash" size="60%" {
                     args "-c" "storage/blast/monitor_log.sh routes"
                 }
@@ -31,13 +31,13 @@ layout {
                     args "-c" "storage/blast/monitor_log.sh sparks"
                 }
             }
-            pane split_direction="horizontal" size="25%" {
+            pane split_direction="horizontal" size="22%" {
                 pane name="🧰 Menu" command="bash" size="45%" {
                     args "-c" "blast cli"
                     focus true
                 }
                 pane name="Blast Log" command="bash" size="35%" {
-                    args "-c" "storage/blast/blast_log.sh"
+                    args "-c" "storage/blast/blast_log.sh storage/blast/blast.log"
                 }
             }
         }
@@ -46,16 +46,16 @@ layout {
     tab name="📜Logs" {
         pane split_direction="horizontal" {
             pane name="Error Logs" command="bash" {
-                args "-c" "tail -n100 -f storage/logs/error.log"
+                args "-c" "storage/blast/blast_log.sh  storage/logs/error.log"
             }
             pane name="Warning Logs" command="bash" {
-                args "-c" "tail -n100 -f storage/logs/warning.log"
+                args "-c" "storage/blast/blast_log.sh  storage/logs/warning.log"
             }
             pane name="Info Logs" command="bash" {
                 args "-c" "tail -n100 -f storage/logs/info.log"
             }
             pane name="Debug Logs" command="bash" {
-                args "-c" "tail -n100 -f storage/logs/debug.log"
+                args "-c" "storage/blast/blast_log.sh storage/logs/debug.log"
             }
         }
     }
