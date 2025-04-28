@@ -48,6 +48,10 @@ impl Htmx {
     pub fn with_redirect(self, url: impl Into<String>) -> Self {
         self.with_header("HX-Redirect", url)
     }
+
+    pub fn with_location(self, url: impl Into<String>) -> Self {
+        self.with_header("HX-Location", url)
+    }
 }
 
 impl HtmxSuccess {
