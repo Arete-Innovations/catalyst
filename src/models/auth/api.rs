@@ -5,10 +5,11 @@ use crate::database::schema::api_response_logs::dsl as api_response_log_dsl;
 use crate::meltdown::*;
 use crate::structs::*;
 use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
 
 impl ApiKeys {
     pub async fn get_api_key_by_token(token: &str) -> Result<ApiKeys, MeltDown> {
-        let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
         let current_timestamp = chrono::Utc::now().timestamp();
 
         let result = api_key_dsl::api_keys
@@ -16,7 +17,8 @@ impl ApiKeys {
             .filter(api_key_dsl::active.eq(true))
             .filter(api_key_dsl::revoked.eq(false))
             .filter(api_key_dsl::expires_at.is_null().or(api_key_dsl::expires_at.gt(current_timestamp)))
-            .first::<ApiKeys>(&mut conn);
+            .first::<ApiKeys>(&mut conn)
+            .await;
 
         match result {
             Ok(api_key) => Ok(api_key),
@@ -25,7 +27,7 @@ impl ApiKeys {
     }
 
     pub async fn validate_token(token: &str) -> Result<ApiKeys, MeltDown> {
-        let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
         let current_timestamp = chrono::Utc::now().timestamp();
 
         let result = api_key_dsl::api_keys
@@ -33,11 +35,16 @@ impl ApiKeys {
             .filter(api_key_dsl::active.eq(true))
             .filter(api_key_dsl::revoked.eq(false))
             .filter(api_key_dsl::expires_at.is_null().or(api_key_dsl::expires_at.gt(current_timestamp)))
-            .first::<ApiKeys>(&mut conn);
+            .first::<ApiKeys>(&mut conn)
+            .await;
 
         match result {
             Ok(api_key) => {
-                diesel::update(api_key_dsl::api_keys.find(api_key.id)).set(api_key_dsl::last_used_at.eq(current_timestamp)).execute(&mut conn).ok();
+                diesel::update(api_key_dsl::api_keys.find(api_key.id))
+                    .set(api_key_dsl::last_used_at.eq(current_timestamp))
+                    .execute(&mut conn)
+                    .await
+                    .ok();
 
                 Ok(api_key)
             }
@@ -46,9 +53,9 @@ impl ApiKeys {
     }
 
     pub async fn get_by_id(id: i32) -> Result<ApiKeys, MeltDown> {
-        let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-        let result = api_key_dsl::api_keys.find(id).first::<ApiKeys>(&mut conn);
+        let result = api_key_dsl::api_keys.find(id).first::<ApiKeys>(&mut conn).await;
 
         match result {
             Ok(api_key) => Ok(api_key),
@@ -57,9 +64,9 @@ impl ApiKeys {
     }
 
     pub async fn get_by_user_id(user_id: i32) -> Result<Vec<ApiKeys>, MeltDown> {
-        let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-        let result = api_key_dsl::api_keys.filter(api_key_dsl::user_id.eq(user_id)).load::<ApiKeys>(&mut conn);
+        let result = api_key_dsl::api_keys.filter(api_key_dsl::user_id.eq(user_id)).load::<ApiKeys>(&mut conn).await;
 
         match result {
             Ok(api_keys) => Ok(api_keys),
@@ -70,9 +77,9 @@ impl ApiKeys {
 
 impl ApiRequestLogs {
     pub async fn create(new_log: NewApiRequestLog) -> Result<ApiRequestLogs, MeltDown> {
-        let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-        let result = diesel::insert_into(api_request_log_dsl::api_request_logs).values(&new_log).get_result(&mut conn);
+        let result = diesel::insert_into(api_request_log_dsl::api_request_logs).values(&new_log).get_result(&mut conn).await;
 
         match result {
             Ok(log) => Ok(log),
@@ -81,9 +88,9 @@ impl ApiRequestLogs {
     }
 
     pub async fn get_by_id(id: i32) -> Result<ApiRequestLogs, MeltDown> {
-        let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-        let result = api_request_log_dsl::api_request_logs.find(id).first::<ApiRequestLogs>(&mut conn);
+        let result = api_request_log_dsl::api_request_logs.find(id).first::<ApiRequestLogs>(&mut conn).await;
 
         match result {
             Ok(log) => Ok(log),
@@ -92,12 +99,13 @@ impl ApiRequestLogs {
     }
 
     pub async fn get_by_api_key_id(api_key_id: i32) -> Result<Vec<ApiRequestLogs>, MeltDown> {
-        let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
         let result = api_request_log_dsl::api_request_logs
             .filter(api_request_log_dsl::api_key_id.eq(api_key_id))
             .order(api_request_log_dsl::created_at.desc())
-            .load::<ApiRequestLogs>(&mut conn);
+            .load::<ApiRequestLogs>(&mut conn)
+            .await;
 
         match result {
             Ok(logs) => Ok(logs),
@@ -108,9 +116,9 @@ impl ApiRequestLogs {
 
 impl ApiResponseLogs {
     pub async fn create(new_log: NewApiResponseLog) -> Result<ApiResponseLogs, MeltDown> {
-        let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-        let result = diesel::insert_into(api_response_log_dsl::api_response_logs).values(&new_log).get_result(&mut conn);
+        let result = diesel::insert_into(api_response_log_dsl::api_response_logs).values(&new_log).get_result(&mut conn).await;
 
         match result {
             Ok(log) => Ok(log),
@@ -119,9 +127,9 @@ impl ApiResponseLogs {
     }
 
     pub async fn get_by_id(id: i32) -> Result<ApiResponseLogs, MeltDown> {
-        let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-        let result = api_response_log_dsl::api_response_logs.find(id).first::<ApiResponseLogs>(&mut conn);
+        let result = api_response_log_dsl::api_response_logs.find(id).first::<ApiResponseLogs>(&mut conn).await;
 
         match result {
             Ok(log) => Ok(log),
@@ -130,12 +138,13 @@ impl ApiResponseLogs {
     }
 
     pub async fn get_by_request_log_id(request_log_id: i32) -> Result<Vec<ApiResponseLogs>, MeltDown> {
-        let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
         let result = api_response_log_dsl::api_response_logs
             .filter(api_response_log_dsl::request_log_id.eq(request_log_id))
             .order(api_response_log_dsl::created_at.desc())
-            .load::<ApiResponseLogs>(&mut conn);
+            .load::<ApiResponseLogs>(&mut conn)
+            .await;
 
         match result {
             Ok(logs) => Ok(logs),
@@ -145,3 +154,4 @@ impl ApiResponseLogs {
         }
     }
 }
+
