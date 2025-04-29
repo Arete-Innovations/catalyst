@@ -247,4 +247,3 @@ pub struct TemplateComponentsView {
     pub footer_scripts: Vec<String>,
     pub active_sparks: Vec<String>,
 }
-

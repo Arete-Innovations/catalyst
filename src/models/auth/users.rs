@@ -4,42 +4,39 @@ use crate::meltdown::*;
 use crate::structs::*;
 use bcrypt::{hash, verify};
 use diesel::prelude::*;
-use diesel::Connection;
-use tokio::task;
+use diesel_async::scoped_futures::ScopedFutureExt;
+use diesel_async::{AsyncConnection, RunQueryDsl};
 
 impl Users {
     pub async fn count_active_users() -> Result<i64, MeltDown> {
-        task::spawn_blocking(move || {
-            let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-            user_dsl::users
-                .filter(user_dsl::active.eq(true))
-                .count()
-                .get_result::<i64>(&mut conn)
-                .map_err(|e| MeltDown::from(e).with_context("operation", "count_active_users"))
-        })
-        .await
-        .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?
+        user_dsl::users
+            .filter(user_dsl::active.eq(true))
+            .count()
+            .get_result::<i64>(&mut conn)
+            .await
+            .map_err(|e| MeltDown::from(e).with_context("operation", "count_active_users"))
     }
 
     pub async fn verify_password(&self, password: String) -> Result<bool, MeltDown> {
         let password_hash = self.password_hash.clone();
 
-        task::spawn_blocking(move || {
-            let result = verify(&password, &password_hash)?;
-
-            if !result {
-                return Err(MeltDown::invalid_credentials().with_context("operation", "password_verification"));
+        tokio::task::spawn_blocking(move || match verify(&password, &password_hash) {
+            Ok(result) => {
+                if !result {
+                    return Err(MeltDown::invalid_credentials().with_context("operation", "password_verification"));
+                }
+                Ok(result)
             }
-
-            Ok(result)
+            Err(e) => Err(MeltDown::from(e).with_context("operation", "password_verification")),
         })
         .await
         .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?
     }
 
     pub async fn set_password(&mut self, password: String) -> Result<(), MeltDown> {
-        let hashed = task::spawn_blocking(move || hash(&password, bcrypt::DEFAULT_COST).map_err(|e| MeltDown::from(e).with_context("operation", "password_hashing")))
+        let hashed = tokio::task::spawn_blocking(move || hash(&password, bcrypt::DEFAULT_COST).map_err(|e| MeltDown::from(e).with_context("operation", "password_hashing")))
             .await
             .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))??;
 
@@ -48,16 +45,13 @@ impl Users {
     }
 
     pub async fn get_all_users() -> Result<Vec<Users>, MeltDown> {
-        task::spawn_blocking(move || {
-            let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-            user_dsl::users
-                .filter(user_dsl::role.ne("dev"))
-                .load::<Users>(&mut conn)
-                .map_err(|e| MeltDown::from(e).with_context("operation", "get_all_users"))
-        })
-        .await
-        .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?
+        user_dsl::users
+            .filter(user_dsl::role.ne("dev"))
+            .load::<Users>(&mut conn)
+            .await
+            .map_err(|e| MeltDown::from(e).with_context("operation", "get_all_users"))
     }
 
     pub async fn is_admin(id: i32) -> Result<bool, MeltDown> {
@@ -66,58 +60,48 @@ impl Users {
     }
 
     pub async fn get_all_users_active() -> Result<Vec<Users>, MeltDown> {
-        task::spawn_blocking(move || {
-            let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-            user_dsl::users
-                .filter(user_dsl::role.ne("dev"))
-                .filter(user_dsl::active.eq(true))
-                .order(user_dsl::id.asc())
-                .load::<Users>(&mut conn)
-                .map_err(|e| MeltDown::from(e).with_context("operation", "get_all_users_active"))
-        })
-        .await
-        .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?
+        user_dsl::users
+            .filter(user_dsl::role.ne("dev"))
+            .filter(user_dsl::active.eq(true))
+            .order(user_dsl::id.asc())
+            .load::<Users>(&mut conn)
+            .await
+            .map_err(|e| MeltDown::from(e).with_context("operation", "get_all_users_active"))
     }
 
     pub async fn search_users(query: &str) -> Result<Vec<Users>, MeltDown> {
         let query_string = query.to_string();
+        let mut conn = establish_connection().await;
+        let query = format!("%{}%", query_string.to_lowercase());
 
-        task::spawn_blocking(move || {
-            let mut conn = establish_connection();
-            let query = format!("%{}%", query_string.to_lowercase());
-
-            user_dsl::users
-                .filter(
-                    user_dsl::active.eq(true).and(
-                        user_dsl::username
-                            .ilike(&query)
-                            .or(user_dsl::first_name.ilike(&query))
-                            .or(user_dsl::last_name.ilike(&query))
-                            .or(user_dsl::email.nullable().ilike(&query)),
-                    ),
-                )
-                .order(user_dsl::username.asc())
-                .load::<Users>(&mut conn)
-                .map_err(|e| MeltDown::from(e).with_context("operation", "search_users").with_context("query", query))
-        })
-        .await
-        .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?
+        user_dsl::users
+            .filter(
+                user_dsl::active.eq(true).and(
+                    user_dsl::username
+                        .ilike(&query)
+                        .or(user_dsl::first_name.ilike(&query))
+                        .or(user_dsl::last_name.ilike(&query))
+                        .or(user_dsl::email.nullable().ilike(&query)),
+                ),
+            )
+            .order(user_dsl::username.asc())
+            .load::<Users>(&mut conn)
+            .await
+            .map_err(|e| MeltDown::from(e).with_context("operation", "search_users").with_context("query", query))
     }
 
     pub async fn username_exists(username: String) -> Result<bool, MeltDown> {
-        task::spawn_blocking(move || {
-            let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-            user_dsl::users
-                .filter(user_dsl::username.eq(&username))
-                .first::<Users>(&mut conn)
-                .optional()
-                .map_err(|e| MeltDown::from(e).with_context("operation", "username_exists").with_context("username", username.clone()))
-                .map(|result| result.is_some())
-        })
-        .await
-        .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?
+        user_dsl::users
+            .filter(user_dsl::username.eq(&username))
+            .first::<Users>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| MeltDown::from(e).with_context("operation", "username_exists").with_context("username", username.clone()))
+            .map(|result| result.is_some())
     }
 
     pub async fn is_admin_by_id(id: i32) -> Result<bool, MeltDown> {
@@ -126,12 +110,14 @@ impl Users {
     }
 
     pub async fn register_user(register: RegisterForm) -> Result<(), MeltDown> {
-        task::spawn_blocking(move || {
-            let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-            conn.transaction::<_, MeltDown, _>(|conn| {
-                let password_hash = hash(&register.password, bcrypt::DEFAULT_COST)?;
+        let password_hash = tokio::task::spawn_blocking(move || hash(&register.password, bcrypt::DEFAULT_COST).map_err(|e| MeltDown::from(e).with_context("operation", "password_hashing")))
+            .await
+            .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))??;
 
+        conn.transaction::<_, MeltDown, _>(|conn| {
+            async move {
                 let new_user = NewUser {
                     username: register.username.to_string(),
                     first_name: register.first_name.to_string(),
@@ -144,35 +130,36 @@ impl Users {
                 diesel::insert_into(user_dsl::users)
                     .values(&new_user)
                     .execute(conn)
+                    .await
                     .map_err(|e| MeltDown::from(e).with_context("operation", "user_registration"))?;
 
                 Ok(())
-            })
+            }
+            .scope_boxed()
         })
         .await
-        .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?
     }
 
     pub async fn get_user_by_id(id: i32) -> Result<Users, MeltDown> {
-        task::spawn_blocking(move || {
-            let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-            user_dsl::users.filter(user_dsl::id.eq(id)).first::<Users>(&mut conn).map_err(|e| {
-                let mut error = MeltDown::from(e);
-                error = error.with_context("operation", "get_user_by_id").with_context("user_id", id.to_string());
+        user_dsl::users.filter(user_dsl::id.eq(id)).first::<Users>(&mut conn).await.map_err(|e| {
+            let mut error = MeltDown::from(e);
+            error = error.with_context("operation", "get_user_by_id").with_context("user_id", id.to_string());
 
-                error
-            })
+            error
         })
-        .await
-        .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?
     }
 
     pub async fn get_user_by_username(username: String) -> Result<Users, MeltDown> {
-        task::spawn_blocking(move || {
-            let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-            user_dsl::users.filter(user_dsl::username.eq(&username)).filter(user_dsl::active.eq(true)).first::<Users>(&mut conn).map_err(|e| {
+        user_dsl::users
+            .filter(user_dsl::username.eq(&username))
+            .filter(user_dsl::active.eq(true))
+            .first::<Users>(&mut conn)
+            .await
+            .map_err(|e| {
                 let mut error = MeltDown::from(e);
                 error = error.with_context("operation", "get_user_by_username").with_context("username", username.clone());
 
@@ -182,41 +169,33 @@ impl Users {
 
                 error
             })
-        })
-        .await
-        .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?
     }
 
     pub async fn get_id_by_username(username: String) -> Result<i32, MeltDown> {
-        task::spawn_blocking(move || {
-            let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-            user_dsl::users.filter(user_dsl::username.eq(&username)).select(user_dsl::id).first::<i32>(&mut conn).map_err(|e| {
-                let mut error = MeltDown::from(e);
-                error = error.with_context("operation", "get_id_by_username").with_context("username", username.clone());
-                error
-            })
+        user_dsl::users.filter(user_dsl::username.eq(&username)).select(user_dsl::id).first::<i32>(&mut conn).await.map_err(|e| {
+            let mut error = MeltDown::from(e);
+            error = error.with_context("operation", "get_id_by_username").with_context("username", username.clone());
+            error
         })
-        .await
-        .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?
     }
 
     pub async fn activate_user(&mut self) -> Result<(), MeltDown> {
         let user_id = self.id;
+        let mut conn = establish_connection().await;
 
-        task::spawn_blocking(move || {
-            let mut conn = establish_connection();
+        let _ = user_dsl::users
+            .filter(user_dsl::id.eq(user_id))
+            .first::<Users>(&mut conn)
+            .await
+            .map_err(|e| MeltDown::from(e).with_context("operation", "activate_user_check").with_context("id", user_id.to_string()))?;
 
-            conn.transaction::<_, MeltDown, _>(|conn| {
-                let _ = user_dsl::users.filter(user_dsl::id.eq(user_id)).first::<Users>(conn)?;
-
-                diesel::update(user_dsl::users.filter(user_dsl::id.eq(user_id))).set(user_dsl::active.eq(true)).execute(conn)?;
-
-                Ok(())
-            })
-        })
-        .await
-        .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?;
+        diesel::update(user_dsl::users.filter(user_dsl::id.eq(user_id)))
+            .set(user_dsl::active.eq(true))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| MeltDown::from(e).with_context("operation", "activate_user").with_context("id", user_id.to_string()))?;
 
         self.active = true;
 
@@ -224,73 +203,71 @@ impl Users {
     }
 
     pub async fn deactivate_user(id: i32) -> Result<(), MeltDown> {
-        task::spawn_blocking(move || {
-            let mut conn = establish_connection();
+        let mut conn = establish_connection().await;
 
-            conn.transaction::<_, MeltDown, _>(|conn| {
-                let _ = user_dsl::users.filter(user_dsl::id.eq(id)).first::<Users>(conn)?;
+        let _ = user_dsl::users
+            .filter(user_dsl::id.eq(id))
+            .first::<Users>(&mut conn)
+            .await
+            .map_err(|e| MeltDown::from(e).with_context("operation", "deactivate_user_check").with_context("id", id.to_string()))?;
 
-                diesel::update(user_dsl::users.filter(user_dsl::id.eq(id))).set(user_dsl::active.eq(false)).execute(conn)?;
-
-                Ok(())
-            })
-        })
-        .await
-        .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?;
+        diesel::update(user_dsl::users.filter(user_dsl::id.eq(id)))
+            .set(user_dsl::active.eq(false))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| MeltDown::from(e).with_context("operation", "deactivate_user").with_context("id", id.to_string()))?;
 
         Ok(())
     }
 
     pub async fn change_password_by_id(id: i32, new_password: &str) -> Result<(), MeltDown> {
         let password_string = new_password.to_string();
+        let mut conn = establish_connection().await;
 
-        task::spawn_blocking(move || {
-            let mut conn = establish_connection();
+        let password_hash = tokio::task::spawn_blocking(move || hash(&password_string, bcrypt::DEFAULT_COST).map_err(|e| MeltDown::from(e).with_context("operation", "password_hashing")))
+            .await
+            .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))??;
 
-            conn.transaction::<_, MeltDown, _>(|conn| {
-                let mut user = user_dsl::users.filter(user_dsl::id.eq(id)).first::<Users>(conn)?;
+        let mut user = user_dsl::users
+            .filter(user_dsl::id.eq(id))
+            .first::<Users>(&mut conn)
+            .await
+            .map_err(|e| MeltDown::from(e).with_context("operation", "change_password_check").with_context("id", id.to_string()))?;
 
-                let password_hash = hash(&password_string, bcrypt::DEFAULT_COST)?;
+        user.password_hash = password_hash.clone();
+        user.should_change_password = false;
 
-                user.password_hash = password_hash;
-                user.should_change_password = false;
-
-                diesel::update(user_dsl::users.filter(user_dsl::id.eq(id)))
-                    .set((user_dsl::password_hash.eq(&user.password_hash), user_dsl::should_change_password.eq(user.should_change_password)))
-                    .execute(conn)?;
-
-                Ok(())
-            })
-        })
-        .await
-        .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?;
+        diesel::update(user_dsl::users.filter(user_dsl::id.eq(id)))
+            .set((user_dsl::password_hash.eq(&user.password_hash), user_dsl::should_change_password.eq(user.should_change_password)))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| MeltDown::from(e).with_context("operation", "change_password").with_context("id", id.to_string()))?;
 
         Ok(())
     }
 
     pub async fn reset_password_by_id(id: i32, new_password: &str) -> Result<(), MeltDown> {
         let password_string = new_password.to_string();
+        let mut conn = establish_connection().await;
 
-        task::spawn_blocking(move || {
-            let mut conn = establish_connection();
+        let password_hash = tokio::task::spawn_blocking(move || hash(&password_string, bcrypt::DEFAULT_COST).map_err(|e| MeltDown::from(e).with_context("operation", "password_hashing")))
+            .await
+            .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))??;
 
-            conn.transaction::<_, MeltDown, _>(|conn| {
-                let mut user = user_dsl::users.filter(user_dsl::id.eq(id)).first::<Users>(conn)?;
+        let mut user = user_dsl::users
+            .filter(user_dsl::id.eq(id))
+            .first::<Users>(&mut conn)
+            .await
+            .map_err(|e| MeltDown::from(e).with_context("operation", "reset_password_check").with_context("id", id.to_string()))?;
 
-                let password_hash = hash(&password_string, bcrypt::DEFAULT_COST)?;
+        user.password_hash = password_hash.clone();
+        user.should_change_password = true;
 
-                user.password_hash = password_hash;
-                user.should_change_password = true;
-
-                diesel::update(user_dsl::users.filter(user_dsl::id.eq(id)))
-                    .set((user_dsl::password_hash.eq(&user.password_hash), user_dsl::should_change_password.eq(user.should_change_password)))
-                    .execute(conn)?;
-
-                Ok(())
-            })
-        })
-        .await
-        .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?;
+        diesel::update(user_dsl::users.filter(user_dsl::id.eq(id)))
+            .set((user_dsl::password_hash.eq(&user.password_hash), user_dsl::should_change_password.eq(user.should_change_password)))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| MeltDown::from(e).with_context("operation", "reset_password").with_context("id", id.to_string()))?;
 
         Ok(())
     }
@@ -301,39 +278,37 @@ impl Users {
         let last_name_string = last_name.to_string();
         let email_option = email.map(|e| e.to_string());
 
-        self.first_name = first_name_string.clone();
-        self.last_name = last_name_string.clone();
-        self.email = email_option.clone();
-        self.updated_at = chrono::Utc::now().timestamp();
+        let updated_at = chrono::Utc::now().timestamp();
+        let mut conn = establish_connection().await;
 
-        let updated_at = self.updated_at;
+        let user = user_dsl::users
+            .filter(user_dsl::id.eq(user_id))
+            .first::<Users>(&mut conn)
+            .await
+            .map_err(|e| MeltDown::from(e).with_context("operation", "update_profile_check").with_context("id", user_id.to_string()))?;
 
-        task::spawn_blocking(move || {
-            let mut conn = establish_connection();
+        if !user.active {
+            return Err(MeltDown::validation_failed("User account is not active"));
+        }
 
-            conn.transaction::<_, MeltDown, _>(|conn| {
-                let user = user_dsl::users.filter(user_dsl::id.eq(user_id)).first::<Users>(conn)?;
+        let result = diesel::update(user_dsl::users.filter(user_dsl::id.eq(user_id)))
+            .set((
+                user_dsl::first_name.eq(&first_name_string),
+                user_dsl::last_name.eq(&last_name_string),
+                user_dsl::email.eq(&email_option),
+                user_dsl::updated_at.eq(updated_at),
+            ))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| MeltDown::from(e).with_context("operation", "update_profile").with_context("id", user_id.to_string()));
 
-                if !user.active {
-                    return Err(MeltDown::validation_failed("User account is not active"));
-                }
+        if result.is_ok() {
+            self.first_name = first_name_string;
+            self.last_name = last_name_string;
+            self.email = email_option;
+            self.updated_at = updated_at;
+        }
 
-                diesel::update(user_dsl::users.filter(user_dsl::id.eq(user_id)))
-                    .set((
-                        user_dsl::first_name.eq(&first_name_string),
-                        user_dsl::last_name.eq(&last_name_string),
-                        user_dsl::email.eq(&email_option),
-                        user_dsl::updated_at.eq(updated_at),
-                    ))
-                    .execute(conn)?;
-
-                Ok(())
-            })
-        })
-        .await
-        .map_err(|e| MeltDown::new(MeltType::Unknown, format!("Task join error: {}", e)))?;
-
-        Ok(())
+        result.map(|_| ())
     }
 }
-

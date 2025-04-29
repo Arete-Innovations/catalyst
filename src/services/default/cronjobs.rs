@@ -4,6 +4,8 @@ use crate::database::schema::cronjobs::dsl::*;
 use crate::structs::*;
 use chrono::Utc;
 use diesel::prelude::*;
+use diesel_async::AsyncPgConnection;
+use diesel_async::RunQueryDsl;
 use std::collections::HashMap;
 use std::process::Command;
 use tokio::time::{self, Duration};
@@ -22,8 +24,8 @@ pub async fn scheduler() {
         interval.tick().await;
         cata_log!(CronjobExecution, "Checking scheduled jobs...");
 
-        let mut connection = establish_connection();
-        update_jobs(&mut connection, &mut jobs);
+        let mut connection = establish_connection().await;
+        update_jobs(&mut connection, &mut jobs).await;
 
         let current_time = Utc::now().timestamp();
         for job in jobs.values_mut() {
@@ -46,7 +48,7 @@ pub async fn scheduler() {
 
                 {
                     let msg_prefix = format!("Failed to update last run for job {}: ", job.cronjob.id);
-                    if let Err(err) = update_last_run(&mut connection, job.cronjob.id) {
+                    if let Err(err) = update_last_run(&mut connection, job.cronjob.id).await {
                         let full_msg = format!("{}{}", msg_prefix, err);
                         cata_log!(CronjobError, full_msg);
                     }
@@ -56,8 +58,8 @@ pub async fn scheduler() {
     }
 }
 
-fn update_jobs(conn: &mut PgConnection, jobs: &mut HashMap<i32, ScheduledJob>) {
-    match cronjobs.load::<Cronjobs>(conn) {
+async fn update_jobs(conn: &mut AsyncPgConnection, jobs: &mut HashMap<i32, ScheduledJob>) {
+    match cronjobs.load::<Cronjobs>(conn).await {
         Ok(cronjob_list) => {
             for cronjob in cronjob_list {
                 let interval = cronjob.timer as i64;
@@ -88,17 +90,15 @@ async fn run_cronjob(job_name: &str) -> Result<(), String> {
     }
 }
 
-fn update_last_run(conn: &mut PgConnection, job_id: i32) -> Result<(), diesel::result::Error> {
+async fn update_last_run(conn: &mut AsyncPgConnection, job_id: i32) -> Result<(), diesel::result::Error> {
     let current_time = Utc::now().timestamp();
 
-    diesel::update(cronjobs.find(job_id))
-        .set((last_run.eq(current_time), status.eq("completed")))
-        .execute(conn)
-        .map(|_| ())
-        .map_err(|err| {
+    match diesel::update(cronjobs.find(job_id)).set((last_run.eq(current_time), status.eq("completed"))).execute(conn).await {
+        Ok(_) => Ok(()),
+        Err(err) => {
             let msg = format!("Failed to update last run for job {}: {}", job_id, err);
             cata_log!(CronjobError, msg);
-            err
-        })
+            Err(err)
+        }
+    }
 }
-

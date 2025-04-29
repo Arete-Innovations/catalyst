@@ -97,4 +97,3 @@ impl<'r> FromRequest<'r> for Referer {
         }
     }
 }
-

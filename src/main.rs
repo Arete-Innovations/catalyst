@@ -21,8 +21,8 @@ use routes::*;
 use services::*;
 
 #[launch]
-fn rocket() -> _ {
-    bootstrap();
+async fn rocket() -> _ {
+    bootstrap().await;
     cata_log!(Info, "Starting server...");
     let mut rocket_app = rocket::build()
         .mount("/", home::routes())

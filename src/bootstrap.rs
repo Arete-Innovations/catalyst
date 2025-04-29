@@ -38,7 +38,7 @@ impl AppConfig {
     }
 }
 
-pub fn bootstrap() {
+pub async fn bootstrap() {
     cata_log!(Info, "Starting bootstrap process");
 
     dotenv::dotenv().ok();
@@ -57,13 +57,12 @@ pub fn bootstrap() {
         cata_log!(Info, format!("Environment: {}", config.settings.environment));
     }
 
-    cata_log!(Debug, "Initializing database connection pools");
-    if let Err(e) = crate::database::db::init_connection_pools() {
-        cata_log!(Error, format!("Failed to initialize database connection pools: {}", e));
-        panic!("Database initialization failed: {}", e);
+    cata_log!(Debug, "Initializing database connection pool");
+    if let Err(e) = crate::database::db::init_connection_pool().await {
+        cata_log!(Error, format!("Failed to initialize database connection pool: {}", e));
+        panic!("Database initialization failed");
     }
 
-    cata_log!(Debug, "Initializing core registries");
     registry::init_registry();
     makeuse::init_spark_configs();
     makeuse::init_template_registry();
