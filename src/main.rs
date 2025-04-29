@@ -62,4 +62,3 @@ async fn rocket() -> _ {
         }))
         .attach(Gzip)
 }
-

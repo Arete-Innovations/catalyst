@@ -39,4 +39,3 @@ pub async fn serve_file(bucket_str: &str, filename: &str, jwt_token: &str) -> Re
 
     Ok((content_type, file_bytes))
 }
-

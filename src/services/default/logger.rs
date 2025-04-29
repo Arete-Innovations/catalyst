@@ -131,4 +131,3 @@ macro_rules! cata_log {
         $crate::services::logger::CatalystLogger::log($crate::services::logger::LogLevel::$level, &full_msg);
     }};
 }
-

@@ -102,4 +102,3 @@ async fn update_last_run(conn: &mut AsyncPgConnection, job_id: i32) -> Result<()
         }
     }
 }
-

@@ -92,4 +92,3 @@ pub async fn jwt_to_user(jwt_token: &str) -> Result<Users, MeltDown> {
 pub fn jwt_to_id(jwt: &JWT) -> Result<i32, MeltDown> {
     jwt.0.sub.parse::<i32>().map_err(|e| MeltDown::new(MeltType::InvalidToken, format!("Invalid user ID in JWT: {}", e)))
 }
-

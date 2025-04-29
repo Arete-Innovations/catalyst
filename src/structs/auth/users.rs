@@ -55,4 +55,3 @@ pub struct UpdatePassword<'a> {
     pub password: &'a str,
     pub confirm_password: &'a str,
 }
-

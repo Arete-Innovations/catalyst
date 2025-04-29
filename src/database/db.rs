@@ -69,4 +69,3 @@ async fn get_pooled_connection() -> Result<AsyncPgConnection, MeltDown> {
         .await
         .map_err(|e| MeltDown::db_connection(format!("Error connecting to database: {}", e)))
 }
-

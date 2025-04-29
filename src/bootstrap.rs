@@ -139,4 +139,3 @@ fn load_manifest(path: &Path, spark_name: &str) -> Result<(), Box<dyn std::error
 
     Ok(())
 }
-
