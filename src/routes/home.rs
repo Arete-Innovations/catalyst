@@ -1,18 +1,18 @@
-use crate::cata_log;
-use crate::meltdown::*;
-use crate::middleware::*;
-use crate::routes::*;
-use crate::structs::*;
+use std::env;
+
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, EncodingKey, Header as JWTHeader};
-use rocket::form::Form;
-use rocket::http::{Cookie, CookieJar};
-use rocket::response::Flash;
-use rocket::response::Redirect;
-use rocket::uri;
-use rocket::{get, post, routes, Route};
+use rocket::{
+    form::Form,
+    get,
+    http::{Cookie, CookieJar},
+    post,
+    response::{Flash, Redirect},
+    routes, uri, Route,
+};
 use rocket_dyn_templates::Template;
-use std::env;
+
+use crate::{cata_log, meltdown::*, middleware::*, routes::*, structs::*};
 
 #[post("/auth/login", data = "<login_form>")]
 async fn post_login(login_form: Form<LoginForm>, cookies: &CookieJar<'_>, app_context: AppContext<'_>) -> Result<Flash<Redirect>, Flash<Redirect>> {
@@ -156,4 +156,3 @@ pub async fn page_not_found(app_context: AppContext<'_>) -> Template {
 pub fn routes() -> Vec<Route> {
     routes![get_home, page_not_found, get_login, get_logout, get_register, post_login, post_register]
 }
-

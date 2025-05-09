@@ -1,10 +1,11 @@
+use std::marker::PhantomData;
+
 use rocket::{
     data::Data,
     request::{self, FromRequest, Request},
     route::{Handler, Outcome},
     Route,
 };
-use std::marker::PhantomData;
 
 pub struct Guarded<G> {
     inner: Box<dyn Handler>,

@@ -1,11 +1,15 @@
-use crate::database::db::establish_connection;
-use crate::database::schema::users::dsl::{self as user_dsl};
-use crate::meltdown::*;
-use crate::structs::*;
 use bcrypt::{hash, verify};
 use diesel::prelude::*;
-use diesel_async::scoped_futures::ScopedFutureExt;
-use diesel_async::{AsyncConnection, RunQueryDsl};
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
+
+use crate::{
+    database::{
+        db::establish_connection,
+        schema::users::dsl::{self as user_dsl},
+    },
+    meltdown::*,
+    structs::*,
+};
 
 impl Users {
     pub async fn count_active_users() -> Result<i64, MeltDown> {

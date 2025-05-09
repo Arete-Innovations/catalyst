@@ -1,7 +1,7 @@
-use crate::meltdown::*;
-use crate::middleware::*;
 use rocket::{get, routes, Route};
 use rocket_dyn_templates::Template;
+
+use crate::{meltdown::*, middleware::*};
 
 #[get("/user/dashboard")]
 pub async fn get_user_dashboard(app_context: AppContext<'_>) -> Result<Template, MeltDown> {

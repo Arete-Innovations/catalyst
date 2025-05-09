@@ -1,9 +1,12 @@
+use std::{
+    fs::{self, OpenOptions},
+    io::Write,
+    panic::{self, PanicHookInfo},
+    path::Path,
+    time::{SystemTime, UNIX_EPOCH},
+};
+
 use chrono::Local;
-use std::fs::{self, OpenOptions};
-use std::io::Write;
-use std::panic::{self, PanicHookInfo};
-use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Copy)]
 enum TimestampPrecision {

@@ -1,12 +1,14 @@
+use std::{fmt, io::Error as IoError};
+
 use diesel::result::{DatabaseErrorKind, Error as DieselError};
-use rocket::http::Status;
-use rocket::response::{Flash, Redirect};
-use rocket::serde::json::Json;
-use rocket::uri;
+use rocket::{
+    http::Status,
+    response::{Flash, Redirect},
+    serde::json::Json,
+    uri,
+};
 use serde::Serialize;
 use serde_json::json;
-use std::fmt;
-use std::io::Error as IoError;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MeltType {
@@ -235,7 +237,8 @@ impl fmt::Display for MeltDown {
     }
 }
 
-impl std::error::Error for MeltDown {}
+impl std::error::Error for MeltDown {
+}
 
 impl From<bcrypt::BcryptError> for MeltDown {
     fn from(err: bcrypt::BcryptError) -> Self {

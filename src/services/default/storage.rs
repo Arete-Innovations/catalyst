@@ -1,8 +1,11 @@
-use crate::middleware::*;
-use crate::structs::*;
-use rocket::http::{ContentType, Status};
-use rocket::tokio::fs;
 use std::path::PathBuf;
+
+use rocket::{
+    http::{ContentType, Status},
+    tokio::fs,
+};
+
+use crate::{middleware::*, structs::*};
 
 pub enum StorageBucket {
     UserFiles,

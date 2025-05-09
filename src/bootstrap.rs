@@ -1,11 +1,9 @@
-use crate::cata_log;
-use crate::services::*;
+use std::{collections::HashMap, fs, path::Path, sync::OnceLock};
+
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fs;
-use std::path::Path;
-use std::sync::OnceLock;
 use toml::Value as TomlValue;
+
+use crate::{cata_log, services::*};
 
 pub static APP_CONFIG: OnceLock<AppConfig> = OnceLock::new();
 

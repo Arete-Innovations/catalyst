@@ -1,11 +1,14 @@
-use crate::database::db::establish_connection;
-use crate::database::schema::api_keys::dsl as api_key_dsl;
-use crate::database::schema::api_request_logs::dsl as api_request_log_dsl;
-use crate::database::schema::api_response_logs::dsl as api_response_log_dsl;
-use crate::meltdown::*;
-use crate::structs::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
+
+use crate::{
+    database::{
+        db::establish_connection,
+        schema::{api_keys::dsl as api_key_dsl, api_request_logs::dsl as api_request_log_dsl, api_response_logs::dsl as api_response_log_dsl},
+    },
+    meltdown::*,
+    structs::*,
+};
 
 impl ApiKeys {
     pub async fn get_api_key_by_token(token: &str) -> Result<ApiKeys, MeltDown> {

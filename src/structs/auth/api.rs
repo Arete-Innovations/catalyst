@@ -1,7 +1,8 @@
-use crate::database::schema::*;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
+
+use crate::database::schema::*;
 
 #[derive(Debug, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = api_keys)]

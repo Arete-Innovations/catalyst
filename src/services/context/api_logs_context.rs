@@ -1,6 +1,6 @@
-use crate::cata_log;
-use crate::structs::*;
 use serde::Serialize;
+
+use crate::{cata_log, structs::*};
 
 #[derive(Serialize, Debug, Default)]
 pub struct ApiLogsContext {

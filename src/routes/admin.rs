@@ -1,6 +1,7 @@
-use crate::middleware::*;
 use rocket::{get, routes, Route};
 use rocket_dyn_templates::Template;
+
+use crate::middleware::*;
 
 #[get("/admin/dashboard")]
 pub async fn get_admin_dashboard(app_context: AppContext<'_>) -> Template {

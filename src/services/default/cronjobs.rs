@@ -1,14 +1,15 @@
-use crate::cata_log;
-use crate::database::db::establish_connection;
-use crate::database::schema::cronjobs::dsl::*;
-use crate::structs::*;
+use std::{collections::HashMap, process::Command};
+
 use chrono::Utc;
 use diesel::prelude::*;
-use diesel_async::AsyncPgConnection;
-use diesel_async::RunQueryDsl;
-use std::collections::HashMap;
-use std::process::Command;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use tokio::time::{self, Duration};
+
+use crate::{
+    cata_log,
+    database::{db::establish_connection, schema::cronjobs::dsl::*},
+    structs::*,
+};
 
 struct ScheduledJob {
     cronjob: Cronjobs,

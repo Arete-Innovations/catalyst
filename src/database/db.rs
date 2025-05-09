@@ -1,11 +1,15 @@
-use crate::cata_log;
-use crate::meltdown::*;
-use diesel_async::pooled_connection::deadpool::{Object, Pool};
-use diesel_async::pooled_connection::AsyncDieselConnectionManager;
-use diesel_async::{AsyncConnection, AsyncPgConnection};
+use std::{env, sync::OnceLock};
+
+use diesel_async::{
+    pooled_connection::{
+        deadpool::{Object, Pool},
+        AsyncDieselConnectionManager,
+    },
+    AsyncConnection, AsyncPgConnection,
+};
 use dotenv::dotenv;
-use std::env;
-use std::sync::OnceLock;
+
+use crate::{cata_log, meltdown::*};
 
 const MAX_POOL_SIZE: usize = 20;
 

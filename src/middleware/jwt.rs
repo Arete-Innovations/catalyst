@@ -1,13 +1,15 @@
-use crate::cata_log;
-use crate::meltdown::*;
-use crate::structs::*;
+use std::env;
+
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header as JWTHeader, Validation};
-use rocket::async_trait;
-use rocket::http::Cookie;
-use rocket::request::{self, FromRequest, Outcome, Request};
+use rocket::{
+    async_trait,
+    http::Cookie,
+    request::{self, FromRequest, Outcome, Request},
+};
 use serde::{Deserialize, Serialize};
-use std::env;
+
+use crate::{cata_log, meltdown::*, structs::*};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {

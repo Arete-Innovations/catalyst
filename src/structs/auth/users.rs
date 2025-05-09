@@ -1,9 +1,8 @@
-use crate::database::schema::users;
-use diesel::prelude::*;
-use diesel::Queryable;
+use diesel::{prelude::*, Queryable};
 use rocket::form::FromForm;
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+use crate::database::schema::users;
 
 #[derive(Queryable, QueryableByName, Debug, Identifiable, Serialize, Deserialize, Default)]
 #[diesel(table_name = users)]

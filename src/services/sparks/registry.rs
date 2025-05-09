@@ -1,8 +1,11 @@
-use crate::cata_log;
-use crate::services::*;
+use std::{
+    collections::HashMap,
+    sync::{Mutex, OnceLock},
+};
+
 use rocket::{Build, Rocket};
-use std::collections::HashMap;
-use std::sync::{Mutex, OnceLock};
+
+use crate::{cata_log, services::*};
 
 pub struct SparkRegistry {
     registered_sparks: HashMap<String, fn() -> Box<dyn Spark>>,

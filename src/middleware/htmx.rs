@@ -1,8 +1,12 @@
-use crate::meltdown::*;
-use rocket::http::{ContentType, Header, Status};
-use rocket::request::Request;
-use rocket::response::{self, Responder, Response};
 use std::io::Cursor;
+
+use rocket::{
+    http::{ContentType, Header, Status},
+    request::Request,
+    response::{self, Responder, Response},
+};
+
+use crate::meltdown::*;
 
 pub struct HtmxSuccess;
 pub struct HtmxError;

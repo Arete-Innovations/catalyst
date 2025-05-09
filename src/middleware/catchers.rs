@@ -1,15 +1,15 @@
-use crate::cata_log;
-use crate::meltdown::*;
-use crate::routes::*;
-use rocket::catch;
-use rocket::request::Request;
-use rocket::response::{Redirect, Responder};
-use rocket::serde::json::Json;
-use rocket::uri;
+use rocket::{
+    catch,
+    request::Request,
+    response::{Redirect, Responder},
+    serde::json::Json,
+    uri,
+};
 use rocket_dyn_templates::Template;
 use serde_json::json;
 
 use super::app_context;
+use crate::{cata_log, meltdown::*, routes::*};
 
 #[catch(401)]
 pub fn unauthorized(req: &Request) -> Result<Redirect, Json<serde_json::Value>> {
@@ -49,7 +49,7 @@ pub fn forbidden(req: &Request) -> Result<Redirect, Json<serde_json::Value>> {
 pub fn not_found(req: &Request) -> Result<Template, Json<serde_json::Value>> {
     cata_log!(Trace, format!("TESTING"));
     cata_log!(Warning, format!("Not found: {}", req.uri()));
-    
+
     if req.uri().path().starts_with("/api") || accepts_json(req) {
         let error = MeltDown::new(MeltType::NotFound, "Resource");
         return Err(Json(json!({

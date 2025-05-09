@@ -1,5 +1,4 @@
-use rocket::serde::json::Json;
-use rocket::{get, routes, Route};
+use rocket::{get, routes, serde::json::Json, Route};
 use serde_json::{json, Value};
 
 #[get("/api/v1/status")]

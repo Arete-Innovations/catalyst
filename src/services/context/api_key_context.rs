@@ -1,7 +1,6 @@
-use crate::cata_log;
-use crate::services::*;
-use crate::structs::*;
 use serde::Serialize;
+
+use crate::{cata_log, services::*, structs::*};
 
 #[derive(Serialize, Debug, Default)]
 pub struct ApiKeyContext {

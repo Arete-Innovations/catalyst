@@ -1,10 +1,12 @@
-use crate::cata_log;
-use crate::structs::*;
-use rocket::fairing::{Fairing, Info, Kind};
-use rocket::{Data, Request, Response};
+use std::{collections::HashMap, time::Instant};
+
+use rocket::{
+    fairing::{Fairing, Info, Kind},
+    Data, Request, Response,
+};
 use serde_json::Value as JsonValue;
-use std::collections::HashMap;
-use std::time::Instant;
+
+use crate::{cata_log, structs::*};
 
 #[derive(Clone)]
 struct RequestInfo {

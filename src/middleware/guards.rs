@@ -1,10 +1,11 @@
-use crate::meltdown::*;
-use crate::middleware::*;
-use crate::structs::*;
-use rocket::async_trait;
-use rocket::http::Status;
-use rocket::outcome::Outcome::{Error, Forward, Success};
-use rocket::request::{FromRequest, Outcome, Request};
+use rocket::{
+    async_trait,
+    http::Status,
+    outcome::Outcome::{Error, Forward, Success},
+    request::{FromRequest, Outcome, Request},
+};
+
+use crate::{meltdown::*, middleware::*, structs::*};
 
 pub struct AdminGuard;
 

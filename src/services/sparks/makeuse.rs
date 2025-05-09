@@ -1,9 +1,12 @@
-use crate::cata_log;
+use std::{
+    collections::{HashMap, HashSet},
+    sync::{Mutex, OnceLock},
+};
+
 use serde::Serialize;
-use std::collections::{HashMap, HashSet};
-use std::sync::Mutex;
-use std::sync::OnceLock;
 use toml::Value as TomlValue;
+
+use crate::cata_log;
 
 static TEMPLATE_COMPONENTS: OnceLock<Mutex<TemplateComponents>> = OnceLock::new();
 

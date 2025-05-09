@@ -1,9 +1,11 @@
-use flate2::write::GzEncoder;
-use flate2::Compression;
-use rocket::fairing::{Fairing, Info, Kind};
-use rocket::http::Header;
-use rocket::{Request, Response};
 use std::io::{Cursor, Write};
+
+use flate2::{write::GzEncoder, Compression};
+use rocket::{
+    fairing::{Fairing, Info, Kind},
+    http::Header,
+    Request, Response,
+};
 
 pub struct Gzip;
 

@@ -1,6 +1,8 @@
-use rocket::fairing::{Fairing, Info, Kind};
-use rocket::http::{ContentType, Header};
-use rocket::{Request, Response};
+use rocket::{
+    fairing::{Fairing, Info, Kind},
+    http::{ContentType, Header},
+    Request, Response,
+};
 
 pub struct CacheControlFairing;
 

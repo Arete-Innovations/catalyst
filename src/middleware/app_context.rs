@@ -1,17 +1,18 @@
-use crate::cata_log;
-use crate::meltdown::*;
-use crate::services::*;
+use std::{collections::HashMap, fs};
+
 use once_cell::sync::Lazy;
-use rocket::async_trait;
-use rocket::http::{CookieJar, Method};
-use rocket::outcome::Outcome::{Error, Forward, Success};
-use rocket::request::{FlashMessage, FromRequest, Outcome, Request};
+use rocket::{
+    async_trait,
+    http::{CookieJar, Method},
+    outcome::Outcome::{Error, Forward, Success},
+    request::{FlashMessage, FromRequest, Outcome, Request},
+};
 use rocket_csrf_token::CsrfToken;
 use rocket_dyn_templates::Template;
 use serde::Serialize;
 use serde_json::{json, Value};
-use std::collections::HashMap;
-use std::fs;
+
+use crate::{cata_log, meltdown::*, services::*};
 
 pub struct AppContext<'r> {
     cookies: &'r CookieJar<'r>,

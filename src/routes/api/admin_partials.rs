@@ -1,9 +1,6 @@
-use crate::cata_log;
-use crate::middleware::*;
-use crate::services::*;
-use crate::structs::*;
-use rocket::http::Status;
-use rocket::{get, post, routes, Route};
+use rocket::{get, http::Status, post, routes, Route};
+
+use crate::{cata_log, middleware::*, services::*, structs::*};
 
 #[get("/admin/partials/users_table")]
 pub async fn users_table() -> HtmxResult {

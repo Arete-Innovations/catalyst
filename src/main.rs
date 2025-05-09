@@ -1,8 +1,10 @@
 #[macro_use]
 extern crate rocket;
 
-use rocket::fairing::AdHoc;
-use rocket::fs::{relative, FileServer};
+use rocket::{
+    fairing::AdHoc,
+    fs::{relative, FileServer},
+};
 use rocket_dyn_templates::Template;
 use tokio::spawn;
 

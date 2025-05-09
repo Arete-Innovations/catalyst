@@ -1,8 +1,24 @@
-max_width = 220 
-fn_brace_style = "SameLine"
-imports_granularity = "Item"
-merge_imports = true
+brace_style = "SameLineWhere"
+fn_params_layout = "Tall"
+max_width = 220
+comment_width = 220
+wrap_comments = true
+format_code_in_doc_comments = true
+
+group_imports = "StdExternalCrate"
+imports_granularity = "Crate"
 reorder_imports = true
-newline_ends_file = false
-trailing_whitespace = "Trim"
-struct_literal_width = 0
+
+empty_item_single_line = false
+inline_attribute_width = 0
+
+indent_style = "Block"
+tab_spaces = 4
+hard_tabs = false
+
+newline_style = "Unix"
+
+merge_derives = true
+skip_children = false
+style_edition = "2021"
+format_strings = true
