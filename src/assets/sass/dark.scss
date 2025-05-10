@@ -1,58 +1,20 @@
-@charset "UTF-8";
-
-// Set variables first to avoid undefined variable errors
-$primary-color: #2196F3;
-$secondary-color: #26a69a;
-$background-color: #121212;
-$surface-color: #1e1e1e; 
-$text-color: #e0e0e0;
-$card-bg-color: #2d2d2d;
-
-@import '../materialize/sass/components/color-variables';
-@import '../materialize/sass/components/color-classes';
-
-
-@import '../materialize/sass/components/variables';
-@import '../materialize/sass/components/global';
-@import '../materialize/sass/components/badges';
-@import '../materialize/sass/components/icons-material-design';
-@import '../materialize/sass/components/grid';
-@import '../materialize/sass/components/navbar';
-@import '../materialize/sass/components/typography';
-@import '../materialize/sass/components/transitions';
-@import '../materialize/sass/components/cards';
-@import '../materialize/sass/components/toast';
-@import '../materialize/sass/components/tabs';
-@import '../materialize/sass/components/tooltip';
-@import '../materialize/sass/components/buttons';
-@import '../materialize/sass/components/dropdown';
-@import '../materialize/sass/components/waves';
-@import '../materialize/sass/components/modal';
-@import '../materialize/sass/components/collapsible';
-@import '../materialize/sass/components/chips';
-@import '../materialize/sass/components/materialbox';
-@import '../materialize/sass/components/forms/forms';
-@import '../materialize/sass/components/table_of_contents';
-@import '../materialize/sass/components/sidenav';
-@import '../materialize/sass/components/preloader';
-@import '../materialize/sass/components/slider';
-@import '../materialize/sass/components/carousel';
-@import '../materialize/sass/components/tapTarget';
-@import '../materialize/sass/components/pulse';
-@import '../materialize/sass/components/datepicker';
-@import '../materialize/sass/components/timepicker';
-
+/* Simple dark theme */
 body {
-  background-color: $background-color;
-  color: $text-color;
+  background-color: #121212;
+  color: #e0e0e0;
+  font-family: sans-serif;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
 }
 
-.card {
-  background-color: $card-bg-color;
+a {
+  color: #90caf9;
 }
 
 nav {
-  background-color: $surface-color;
+  background-color: #1e1e1e;
+  padding: 1em;
 }
 
-// Custom theme-specific styles below
+/* Add your custom dark theme styles here */

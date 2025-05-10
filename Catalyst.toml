@@ -97,34 +97,6 @@ public_dir = "public"
 dir = "src/assets/locale"
 default_language = "en"
 
-[assets.materialize]
-repo_url = "https://github.com/Dogfalo/materialize.git"
-version = "1.0.0"
-public_dir = "js/materialize"
-
 [assets.htmx]
 js_url = "https://cdnjs.cloudflare.com/ajax/libs/htmx/2.0.4/htmx.min.js"
 public_dir = "js/htmx"
-
-[assets.materialicons]
-base_url = "https://raw.githubusercontent.com/google/material-design-icons/master/font"
-public_dir = "fonts/material-icons"
-woff2 = "MaterialIcons-Regular.woff2"
-ttf = "MaterialIcons-Regular.ttf"
-
-[assets.fontawesome]
-base_url = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1"
-public_dir = "fonts/fontawesome"
-css = ["css/all.min.css"]
-js = ["js/all.min.js"]
-sprites = ["sprites/brands.svg", "sprites/regular.svg", "sprites/solid.svg"]
-webfonts = [
-  "webfonts/fa-brands-400.ttf",
-  "webfonts/fa-brands-400.woff2",
-  "webfonts/fa-regular-400.ttf",
-  "webfonts/fa-regular-400.woff2",
-  "webfonts/fa-solid-900.ttf",
-  "webfonts/fa-solid-900.woff2",
-  "webfonts/fa-v4compatibility.ttf",
-  "webfonts/fa-v4compatibility.woff2"
-]

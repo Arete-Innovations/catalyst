@@ -1,6 +1,10 @@
-<div class="navbar-fixed">
-  <nav>
-    <div class="nav-wrapper">
-    </div>
-  </nav>
-</div>
+<nav>
+  <div>
+    <a href="/">{{ title }}</a>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/login">Login</a></li>
+      <li><a href="/register">Register</a></li>
+    </ul>
+  </div>
+</nav>
