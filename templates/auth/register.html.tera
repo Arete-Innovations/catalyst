@@ -12,12 +12,7 @@
             <div class="row">
               <div class="input-field col s12">
                 <i class="fas fa-user prefix"></i>
-                <input id="username" type="text" name="username" 
-                                                 placeholder="Username"
-                                                 hx-get="/check-username"
-                                                 hx-trigger="keyup changed delay:500ms"
-                                                 hx-target="#username-check"
-                                                 hx-indicator=".username-spinner">
+                <input id="username" type="text" name="username" placeholder="Username">
                 <label for="username">Username</label>
                 <span id="username-check"></span>
                 <span class="username-spinner hide"><i class="fas fa-spinner fa-spin"></i></span>
@@ -51,7 +46,7 @@
         </div>
 
         <div class="card-action center-align">
-          <a href="/login">Already have an account? Login</a>
+          <a href="/auth/login">Already have an account? Login</a>
         </div>
       </div>
     </div>

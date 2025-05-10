@@ -18,10 +18,82 @@ pub struct AppConfig {
 pub struct Settings {
     #[serde(default = "default_environment")]
     pub environment: String,
+
+    #[serde(default)]
+    pub jwt: JwtSettings,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct JwtSettings {
+    #[serde(default = "default_access_token_expiry_mins")]
+    pub access_token_expiry_mins: u64,
+
+    #[serde(default = "default_refresh_token_expiry_days")]
+    pub refresh_token_expiry_days: u64,
+
+    #[serde(default = "default_refresh_token_expiry_days_remember")]
+    pub refresh_token_expiry_days_remember: u64,
+
+    #[serde(default = "default_token_expiry_hours")]
+    pub token_expiry_hours: u64,
+
+    #[serde(default = "default_token_expiry_days_remember")]
+    pub token_expiry_days_remember: u64,
+
+    #[serde(default = "default_token_refresh_threshold_mins")]
+    pub token_refresh_threshold_mins: u64,
+
+    #[serde(default = "default_token_leeway_secs")]
+    pub token_leeway_secs: u64,
+}
+
+impl Default for JwtSettings {
+    fn default() -> Self {
+        JwtSettings {
+            access_token_expiry_mins: default_access_token_expiry_mins(),
+
+            refresh_token_expiry_days: default_refresh_token_expiry_days(),
+            refresh_token_expiry_days_remember: default_refresh_token_expiry_days_remember(),
+
+            token_expiry_hours: default_token_expiry_hours(),
+            token_expiry_days_remember: default_token_expiry_days_remember(),
+            token_refresh_threshold_mins: default_token_refresh_threshold_mins(),
+
+            token_leeway_secs: default_token_leeway_secs(),
+        }
+    }
 }
 
 fn default_environment() -> String {
     "prod".to_string()
+}
+
+fn default_access_token_expiry_mins() -> u64 {
+    30
+}
+
+fn default_refresh_token_expiry_days() -> u64 {
+    7
+}
+
+fn default_refresh_token_expiry_days_remember() -> u64 {
+    30
+}
+
+fn default_token_expiry_hours() -> u64 {
+    10
+}
+
+fn default_token_expiry_days_remember() -> u64 {
+    7
+}
+
+fn default_token_refresh_threshold_mins() -> u64 {
+    60
+}
+
+fn default_token_leeway_secs() -> u64 {
+    5
 }
 
 impl AppConfig {
@@ -67,6 +139,11 @@ pub async fn bootstrap() {
 
     cata_log!(Info, "Starting spark discovery and registration");
     load_spark_manifests();
+
+    cata_log!(Info, "Initializing token version registry");
+    if let Err(e) = token_registry::initialize_token_registry().await {
+        cata_log!(Error, format!("Failed to initialize token registry: {}", e));
+    }
 
     let spark_count = registry::get_available_sparks().len();
     cata_log!(Info, format!("Bootstrap complete: {} sparks registered", spark_count));

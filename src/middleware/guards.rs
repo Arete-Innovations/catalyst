@@ -16,17 +16,11 @@ impl<'r> FromRequest<'r> for AdminGuard {
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         match req.guard::<JWT>().await {
             Success(jwt) => {
-                let user_id = jwt.user_id();
-                match Users::is_admin(user_id).await {
-                    Ok(is_admin) => {
-                        if is_admin {
-                            Success(AdminGuard)
-                        } else {
-                            let error = MeltDown::new(MeltType::Forbidden, "Insufficient permissions to access admin area");
-                            Error((Status::Forbidden, error))
-                        }
-                    }
-                    Err(err) => Error((err.status_code(), err)),
+                if jwt.is_admin() {
+                    Success(AdminGuard)
+                } else {
+                    let error = MeltDown::new(MeltType::Forbidden, "Insufficient permissions to access admin area");
+                    Error((Status::Forbidden, error))
                 }
             }
             Error((status, error)) => Error((status, error)),

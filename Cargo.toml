@@ -23,6 +23,7 @@ tracing = "0.1.41"
 notify = "5.0.0"
 rand = "0.8.5"
 rocket_ws = "0.1.1"
+uuid = { version = "1.8.0", features = ["v4", "serde"] }
 
 [profile.dev]
 codegen-units = 12

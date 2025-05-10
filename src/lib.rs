@@ -1,3 +1,4 @@
+pub mod bootstrap;
 pub mod database;
 pub mod meltdown;
 pub mod middleware;

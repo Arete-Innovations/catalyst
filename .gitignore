@@ -26,5 +26,7 @@ Thumbs.db
 *.tmp
 *.bak
 .env
-storage/blast/blast.log
-storage/blast/server.pid
+/storage/blast/blast.log
+/storage/blast/server.pid
+
+**/.claude/settings.local.json
