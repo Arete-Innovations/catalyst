@@ -3,8 +3,16 @@
     <a href="/">{{ title }}</a>
     <ul>
       <li><a href="/">Home</a></li>
-      <li><a href="/login">Login</a></li>
-      <li><a href="/register">Register</a></li>
+      <li><a href="/auth/login">Login</a></li>
+      <li><a href="/auth/register">Register</a></li>
+      {% if user %}
+        {% if user.is_admin %}
+        <li><a href="/admin">Admin Dashboard</a></li>
+        {% else %}
+        <li><a href="/user">User Dashboard</a></li>
+        {% endif %}
+        <li><a href="/auth/logout">Logout</a></li>
+      {% endif %}
     </ul>
   </div>
 </nav>

@@ -1,8 +1,12 @@
 {% include "partials/header" %}
 {% include "partials/navbar" %}
 
-
 <main>
+    <h1>Admin Dashboard</h1>
+    <p>This is the admin dashboard. You have access to all features.</p>
+    <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; margin: 10px 0;">
+        <strong>Admin Area</strong> - You are logged in as an administrator
+    </div>
 </main>
 
 {% include "partials/footer" %}

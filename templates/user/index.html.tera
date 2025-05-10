@@ -1,5 +1,10 @@
 {% include "partials/header" %}
 {% include "partials/navbar" %}
 <main>
+    <h1>User Dashboard</h1>
+    <p>Welcome to your personal dashboard. Here you can manage your account and settings.</p>
+    <div style="background-color: #d4edda; border: 1px solid #c3e6cb; padding: 10px; margin: 10px 0;">
+        <strong>User Area</strong> - You are logged in as a regular user
+    </div>
 </main>
 {% include "partials/footer" %}
