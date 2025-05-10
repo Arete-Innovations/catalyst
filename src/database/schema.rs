@@ -4,14 +4,14 @@ diesel::table! {
     api_keys (id) {
         id -> Int4,
         user_id -> Int4,
-        name -> Varchar,
+        name -> Text,
         key_hash -> Varchar,
         active -> Bool,
         revoked -> Bool,
+        last_used_at -> Nullable<Int8>,
+        expires_at -> Nullable<Int8>,
         created_at -> Int8,
         updated_at -> Int8,
-        expires_at -> Nullable<Int8>,
-        last_used_at -> Nullable<Int8>,
     }
 }
 
@@ -43,32 +43,60 @@ diesel::table! {
 }
 
 diesel::table! {
+    cronjobs (id) {
+        id -> Int4,
+        name -> Varchar,
+        timer -> Int4,
+        status -> Varchar,
+        last_run -> Nullable<Int8>,
+    }
+}
+
+diesel::table! {
     posts (id) {
         id -> Int4,
         user_id -> Int4,
+        #[max_length = 100]
         title -> Varchar,
         content -> Text,
-        published -> Bool,
+        public -> Bool,
         created_at -> Int8,
         updated_at -> Int8,
     }
 }
 
 diesel::table! {
+    spatial_ref_sys (srid) {
+        srid -> Int4,
+        #[max_length = 256]
+        auth_name -> Nullable<Varchar>,
+        auth_srid -> Nullable<Int4>,
+        #[max_length = 2048]
+        srtext -> Nullable<Varchar>,
+        #[max_length = 2048]
+        proj4text -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
     users (id) {
         id -> Int4,
-        username -> Varchar,
-        email -> Varchar,
+        username -> Text,
+        email -> Nullable<Text>,
+        first_name -> Text,
+        last_name -> Text,
         password_hash -> Varchar,
-        role -> Varchar,
+        role -> Text,
         active -> Bool,
+        should_change_password -> Bool,
         created_at -> Int8,
         updated_at -> Int8,
     }
 }
 
+diesel::joinable!(api_keys -> users (user_id));
 diesel::joinable!(api_request_logs -> api_keys (api_key_id));
 diesel::joinable!(api_response_logs -> api_request_logs (request_log_id));
 diesel::joinable!(posts -> users (user_id));
 
-diesel::allow_tables_to_appear_in_same_query!(api_keys, api_request_logs, api_response_logs, posts, users,);
+diesel::allow_tables_to_appear_in_same_query!(api_keys, api_request_logs, api_response_logs, cronjobs, posts, spatial_ref_sys, users,);

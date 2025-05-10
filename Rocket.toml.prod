@@ -1,0 +1,10 @@
+[default]
+address = "0.0.0.0"
+port = 443 
+template_dir = "templates"
+engines = ["tera"]
+static = { path = "static" }
+
+[global.tls]
+certs = "cert.pem"
+key = "key.pem"

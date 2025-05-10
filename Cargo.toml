@@ -20,6 +20,9 @@ serde = { version = "1.0.217", features = ["derive"] }
 tokio = { version = "1.40.0", features = ["full"] }
 toml = "0.8.20"
 tracing = "0.1.41"
+notify = "5.0.0"
+rand = "0.8.5"
+rocket_ws = "0.1.1"
 
 [profile.dev]
 codegen-units = 12

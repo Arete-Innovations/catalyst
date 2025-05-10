@@ -103,15 +103,6 @@ pub fn register_by_name(name: &str) -> bool {
     cata_log!(Debug, format!("Attempting to register spark '{}'", name));
 
     match name {
-        "plznohac" => {
-            register_spark(name, plznohac::create_spark);
-            true
-        }
-
-        "vigil" => {
-            register_spark(name, vigil::create_spark);
-            true
-        }
         _ => {
             cata_log!(Warning, format!("Cannot register unknown spark '{}'", name));
             false

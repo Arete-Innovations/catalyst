@@ -1,0 +1,6 @@
+[default]
+address = "0.0.0.0"
+port = 8000 
+template_dir = "templates"
+engines = ["tera"]
+static = { path = "static" }

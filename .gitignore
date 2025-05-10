@@ -25,3 +25,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.bak
+.env
+storage/blast/blast.log
+storage/blast/server.pid
