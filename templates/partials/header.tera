@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
     <script src="/public/js/htmx/htmx.min.js"></script>
+    <link rel="stylesheet" href="/public/css/app/main.min.css">
+    <link rel="stylesheet" href="/public/css/app/index.min.css">
     {% for meta_tag in sparks.meta_tags %}
     {{ meta_tag | safe }}
     {% endfor %}
