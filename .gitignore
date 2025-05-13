@@ -7,6 +7,7 @@ Cargo.lock
 
 # Log files
 /storage/logs/*.log
+/storage/blast/*.log
 
 # Claude.ai/code documentation
 CLAUDE.md
