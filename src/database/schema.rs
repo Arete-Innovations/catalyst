@@ -41,16 +41,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    cronjobs (id) {
-        id -> Int4,
-        name -> Varchar,
-        timer -> Int4,
-        status -> Varchar,
-        last_run -> Nullable<Int8>,
-    }
-}
-
-diesel::table! {
     posts (id) {
         id -> Int4,
         user_id -> Int4,
