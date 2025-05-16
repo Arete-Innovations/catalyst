@@ -22,7 +22,7 @@ pub async fn provision_vessel_database(name: &str, username: &str, email: &str, 
             // Fall back to display_name
             create_admin_user(&tenant_name, username, email, password_hash, display_name).await?;
             return Ok(());
-        },
+        }
         Err(e) => {
             cata_log!(Error, format!("Error finding vessel: {}", e.log_message()));
             create_admin_user(&tenant_name, username, email, password_hash, display_name).await?;

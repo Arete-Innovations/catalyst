@@ -52,12 +52,6 @@ async fn rocket() -> _ {
     }
 
     rocket_app
-        .attach(AdHoc::on_liftoff("Cronjob Scheduler", |_rocket| {
-            Box::pin(async move {
-                spawn(scheduler());
-                cata_log!(Info, "Scheduler has started.");
-            })
-        }))
         .attach(AdHoc::on_response("Template Error", |_, res| {
             Box::pin(async move {
                 if res.status().code >= 400 {
