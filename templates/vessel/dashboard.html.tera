@@ -1,0 +1,46 @@
+{% include "partials/header" %}
+<main>
+  <div class="container">
+    <div class="row">
+      <div class="col s12">
+        <div class="card">
+          <div class="card-content">
+            <span class="card-title center-align"><b>Vessel Dashboard</b></span>
+            
+            <div class="row">
+              <div class="col s12">
+                <h5>Welcome, {{ jwt_username }}</h5>
+                <div class="card-panel teal lighten-4">
+                  <i class="material-icons left">info</i>
+                  <strong>Vessel Authentication Active</strong>
+                  <p>You are currently logged in to the vessel system. To access tenant functionality, you must log in to the specific tenant below.</p>
+                </div>
+                <p>This is the vessel dashboard. You can access your tenant system below.</p>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col s12">
+                <h5>Your Tenant</h5>
+                <div class="collection">
+                  <a href="/{{ tenant_name }}/auth/login" class="collection-item">
+                    <div>
+                      <span class="title"><b>{{ tenant_name }}</b></span>
+                      <p>Access tenant system (requires separate tenant login)</p>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-action">
+            <div class="right-align">
+              <a href="/vessel/auth/logout" class="btn red">Logout</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+{% include "partials/footer" %}

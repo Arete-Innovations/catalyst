@@ -22,6 +22,7 @@ pub enum MeltType {
 
     InvalidCredentials,
     ExpiredToken,
+    TokenExpired,
     InvalidToken,
     MissingToken,
     InsufficientPermissions,
@@ -102,6 +103,7 @@ impl MeltDown {
 
             MeltType::InvalidCredentials => "Invalid username or password.".to_string(),
             MeltType::ExpiredToken => "Your session has expired. Please login again.".to_string(),
+            MeltType::TokenExpired => "Your token is no longer valid. Please login again.".to_string(),
             MeltType::InvalidToken => "Invalid authentication token.".to_string(),
             MeltType::MissingToken => "Authentication required.".to_string(),
             MeltType::InsufficientPermissions => "You don't have permission to perform this action.".to_string(),
@@ -161,6 +163,7 @@ impl MeltDown {
             MeltType::NotNullViolation => "NotNullViolation",
             MeltType::InvalidCredentials => "InvalidCredentials",
             MeltType::ExpiredToken => "ExpiredToken",
+            MeltType::TokenExpired => "TokenExpired",
             MeltType::InvalidToken => "InvalidToken",
             MeltType::MissingToken => "MissingToken",
             MeltType::InsufficientPermissions => "InsufficientPermissions",
@@ -189,6 +192,7 @@ impl MeltDown {
         match self.melt_type {
             MeltType::InvalidCredentials => Status::Unauthorized,
             MeltType::ExpiredToken => Status::Unauthorized,
+            MeltType::TokenExpired => Status::Unauthorized,
             MeltType::InvalidToken => Status::Unauthorized,
             MeltType::MissingToken => Status::Unauthorized,
             MeltType::InsufficientPermissions => Status::Forbidden,

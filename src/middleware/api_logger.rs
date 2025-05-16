@@ -8,12 +8,29 @@ use serde_json::Value as JsonValue;
 
 use crate::{cata_log, structs::*};
 
+fn extract_tenant_from_path(path: &str) -> Option<String> {
+    let parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+
+    if parts.len() >= 2 && parts[1] == "api" {
+        let tenant_name = parts[0].to_string();
+
+        if !["api", "auth", "vessel", "admin", "user"].contains(&tenant_name.as_str()) {
+            cata_log!(Debug, format!("Extracted tenant name from path: {}", tenant_name));
+            return Some(tenant_name);
+        }
+    }
+
+    cata_log!(Debug, "Could not extract tenant name from path, using default");
+    None
+}
+
 #[derive(Clone)]
 struct RequestInfo {
     id: i32,
     start_time: Instant,
     content_type: Option<String>,
     content_length: Option<i32>,
+    tenant_name: String,
 }
 
 pub struct ApiLogFairing;
@@ -48,7 +65,8 @@ impl Fairing for ApiLogFairing {
                 let content_type = request.headers().get_one("Content-Type").map(|s| s.to_string());
                 let content_length = request.headers().get_one("Content-Length").and_then(|cl| cl.parse::<i32>().ok());
 
-                if let Ok(api_key) = ApiKeys::get_api_key_by_token(token).await {
+                let tenant_name = extract_tenant_from_path(&request_path).unwrap_or_else(|| "main".to_string());
+                if let Ok(api_key) = ApiKeys::get_api_key_by_token(token, &tenant_name).await {
                     let new_request_log = NewApiRequestLog {
                         api_key_id: api_key.id,
                         request_method,
@@ -59,13 +77,14 @@ impl Fairing for ApiLogFairing {
                         request_content_length: content_length,
                     };
 
-                    match ApiRequestLogs::create(new_request_log).await {
+                    match ApiRequestLogs::create(new_request_log, &tenant_name).await {
                         Ok(log) => {
                             let request_info = RequestInfo {
                                 id: log.id,
                                 start_time: Instant::now(),
                                 content_type,
                                 content_length,
+                                tenant_name: tenant_name.to_string(),
                             };
 
                             request.local_cache(|| request_info);
@@ -108,7 +127,8 @@ impl Fairing for ApiLogFairing {
                 response_headers: Some(headers_json),
             };
 
-            match ApiResponseLogs::create(new_response_log).await {
+            let tenant_name = &request_info.tenant_name;
+            match ApiResponseLogs::create(new_response_log, tenant_name).await {
                 Ok(log) => {
                     cata_log!(Debug, format!("API response logged with ID {} for request {}", log.id, id));
                 }

@@ -1,4 +1,34 @@
 {% include "partials/header" %}
 {% include "partials/navbar" %}
 
+<main>
+  <div class="container">
+    <div class="row">
+      <div class="col s12">
+        <div class="card">
+          <div class="card-content">
+            <span class="card-title center-align"><b>{{ title|default(value="Welcome to " ~ tenant_name) }}</b></span>
+            
+            {% if jwt_role is defined and jwt_auth_system is defined %}
+              {% if jwt_role == "vessel" and jwt_auth_system == "vessel" %}
+              <div class="card-panel orange lighten-4">
+                <i class="material-icons left">info</i>
+                <strong>Vessel Authentication Active</strong>
+                <p>You are currently logged in to the vessel system. To access tenant functionality, you need to log in to this tenant specifically.</p>
+                <a href="/{{ tenant_name }}/auth/login" class="btn">Log in to {{ tenant_name }}</a>
+              </div>
+              {% endif %}
+            {% endif %}
+            
+            <div class="center-align">
+              <a href="/{{ tenant_name }}/auth/login" class="btn btn-large">Log In</a>
+              <a href="/{{ tenant_name }}/auth/register" class="btn btn-large">Register</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
 {% include "partials/footer" %}

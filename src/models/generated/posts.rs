@@ -4,7 +4,7 @@ use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl
 
 use crate::{
     database::{
-        db::establish_connection,
+        db::{establish_connection, establish_connection_with_tenant},
         schema::posts::dsl::{self as post_dsl},
     },
     meltdown::*,
@@ -12,8 +12,8 @@ use crate::{
 };
 
 impl Posts {
-    pub async fn get_all() -> Result<Vec<Posts>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_all(tenant_name: &str) -> Result<Vec<Posts>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         post_dsl::posts
             .order(post_dsl::id.asc())
@@ -22,8 +22,8 @@ impl Posts {
             .map_err(|e: diesel::result::Error| MeltDown::from(e).with_context("operation", "get_all"))
     }
 
-    pub async fn get_by_id(id: i32) -> Result<Posts, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_by_id(id: i32, tenant_name: &str) -> Result<Posts, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         post_dsl::posts
             .filter(post_dsl::id.eq(id))
@@ -32,8 +32,8 @@ impl Posts {
             .map_err(|e: diesel::result::Error| MeltDown::from(e).with_context("operation", "get_by_id").with_context("id", id.to_string()))
     }
 
-    pub async fn create(new_record: NewPosts) -> Result<Posts, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn create(new_record: NewPosts, tenant_name: &str) -> Result<Posts, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         diesel::insert_into(post_dsl::posts)
             .values(&new_record)
@@ -42,8 +42,8 @@ impl Posts {
             .map_err(|e| MeltDown::from(e).with_context("operation", "create"))
     }
 
-    pub async fn update_by_id(id: i32, updates: &NewPosts) -> Result<Posts, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn update_by_id(id: i32, updates: &NewPosts, tenant_name: &str) -> Result<Posts, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         diesel::update(post_dsl::posts.filter(post_dsl::id.eq(id)))
             .set(updates)
@@ -52,8 +52,8 @@ impl Posts {
             .map_err(|e| MeltDown::from(e).with_context("operation", "update_by_id").with_context("id", id.to_string()))
     }
 
-    pub async fn delete_by_id(id: i32) -> Result<(), MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn delete_by_id(id: i32, tenant_name: &str) -> Result<(), MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         conn.transaction::<_, MeltDown, _>(|conn| {
             async move {
@@ -69,8 +69,8 @@ impl Posts {
         .map_err(|e| MeltDown::from(e).with_context("operation", "delete_by_id").with_context("id", id.to_string()))
     }
 
-    pub async fn count() -> Result<i64, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn count(tenant_name: &str) -> Result<i64, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         post_dsl::posts
             .count()
@@ -78,12 +78,12 @@ impl Posts {
             .await
             .map_err(|e: diesel::result::Error| MeltDown::from(e).with_context("operation", "count"))
     }
-    pub async fn is_public(&self) -> bool {
+    pub async fn is_public(&self, tenant_name: &str) -> bool {
         self.public
     }
 
-    pub async fn set_public(&mut self, value: bool) -> Result<Self, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn set_public(&mut self, value: bool, tenant_name: &str) -> Result<Self, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
         let current_timestamp = Utc::now().timestamp();
         let item_id = self.id;
 
@@ -97,16 +97,16 @@ impl Posts {
         Ok(updated)
     }
 
-    pub async fn set_public_true(&mut self) -> Result<Self, MeltDown> {
-        self.set_public(true).await
+    pub async fn set_public_true(&mut self, tenant_name: &str) -> Result<Self, MeltDown> {
+        self.set_public(true, tenant_name).await
     }
 
-    pub async fn set_public_false(&mut self) -> Result<Self, MeltDown> {
-        self.set_public(false).await
+    pub async fn set_public_false(&mut self, tenant_name: &str) -> Result<Self, MeltDown> {
+        self.set_public(false, tenant_name).await
     }
 
-    pub async fn created_after(timestamp: i64) -> Result<Vec<Self>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn created_after(timestamp: i64, tenant_name: &str) -> Result<Vec<Self>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         post_dsl::posts
             .filter(post_dsl::created_at.gt(timestamp))
@@ -116,8 +116,8 @@ impl Posts {
             .map_err(|e: diesel::result::Error| MeltDown::from(e).with_context("operation", "created_after").with_context("timestamp", timestamp.to_string()))
     }
 
-    pub async fn created_before(timestamp: i64) -> Result<Vec<Self>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn created_before(timestamp: i64, tenant_name: &str) -> Result<Vec<Self>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         post_dsl::posts
             .filter(post_dsl::created_at.lt(timestamp))
@@ -127,8 +127,8 @@ impl Posts {
             .map_err(|e: diesel::result::Error| MeltDown::from(e).with_context("operation", "created_before").with_context("timestamp", timestamp.to_string()))
     }
 
-    pub async fn created_between(start: i64, end: i64) -> Result<Vec<Self>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn created_between(start: i64, end: i64, tenant_name: &str) -> Result<Vec<Self>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         post_dsl::posts
             .filter(post_dsl::created_at.ge(start).and(post_dsl::created_at.le(end)))
@@ -143,8 +143,8 @@ impl Posts {
             })
     }
 
-    pub async fn recent(limit: i64) -> Result<Vec<Self>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn recent(limit: i64, tenant_name: &str) -> Result<Vec<Self>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         post_dsl::posts
             .order(post_dsl::created_at.desc())
@@ -154,8 +154,8 @@ impl Posts {
             .map_err(|e: diesel::result::Error| MeltDown::from(e).with_context("operation", "recent").with_context("limit", limit.to_string()))
     }
 
-    pub async fn updated_after(timestamp: i64) -> Result<Vec<Self>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn updated_after(timestamp: i64, tenant_name: &str) -> Result<Vec<Self>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         post_dsl::posts
             .filter(post_dsl::updated_at.gt(timestamp))
@@ -165,8 +165,8 @@ impl Posts {
             .map_err(|e: diesel::result::Error| MeltDown::from(e).with_context("operation", "updated_after").with_context("timestamp", timestamp.to_string()))
     }
 
-    pub async fn recently_updated(limit: i64) -> Result<Vec<Self>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn recently_updated(limit: i64, tenant_name: &str) -> Result<Vec<Self>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         post_dsl::posts
             .order(post_dsl::updated_at.desc())
@@ -176,8 +176,8 @@ impl Posts {
             .map_err(|e: diesel::result::Error| MeltDown::from(e).with_context("operation", "recently_updated").with_context("limit", limit.to_string()))
     }
 
-    pub async fn get_by_user_id(user_id: i32) -> Result<Vec<Self>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_by_user_id(user_id: i32, tenant_name: &str) -> Result<Vec<Self>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         post_dsl::posts
             .filter(post_dsl::user_id.eq(user_id))
@@ -186,8 +186,8 @@ impl Posts {
             .map_err(|e: diesel::result::Error| MeltDown::from(e).with_context("operation", "get_by_user_id").with_context("user_id", user_id.to_string()))
     }
 
-    pub async fn get_by_user_id_created_before(user_id: i32, timestamp: i64) -> Result<Vec<Self>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_by_user_id_created_before(user_id: i32, timestamp: i64, tenant_name: &str) -> Result<Vec<Self>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         post_dsl::posts
             .filter(post_dsl::user_id.eq(user_id))
@@ -203,8 +203,8 @@ impl Posts {
             })
     }
 
-    pub async fn get_by_user_id_created_after(user_id: i32, timestamp: i64) -> Result<Vec<Self>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_by_user_id_created_after(user_id: i32, timestamp: i64, tenant_name: &str) -> Result<Vec<Self>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         post_dsl::posts
             .filter(post_dsl::user_id.eq(user_id))

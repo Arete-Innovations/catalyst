@@ -25,7 +25,9 @@ pub async fn scheduler() {
         interval.tick().await;
         cata_log!(CronjobExecution, "Checking scheduled jobs...");
 
+        let tenant_name = "main";
         let mut connection = establish_connection().await;
+
         update_jobs(&mut connection, &mut jobs).await;
 
         let current_time = Utc::now().timestamp();

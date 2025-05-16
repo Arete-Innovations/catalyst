@@ -4,7 +4,7 @@ use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl
 
 use crate::{
     database::{
-        db::establish_connection,
+        db::{establish_connection, establish_connection_with_tenant},
         schema::users::dsl::{self as user_dsl},
     },
     meltdown::*,
@@ -12,8 +12,8 @@ use crate::{
 };
 
 impl Users {
-    pub async fn count_active_users() -> Result<i64, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn count_active_users(tenant_name: &str) -> Result<i64, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         user_dsl::users
             .filter(user_dsl::active.eq(true))
@@ -48,8 +48,8 @@ impl Users {
         Ok(())
     }
 
-    pub async fn get_all_users() -> Result<Vec<Users>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_all_users(tenant_name: &str) -> Result<Vec<Users>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         user_dsl::users
             .filter(user_dsl::role.ne("dev"))
@@ -58,13 +58,13 @@ impl Users {
             .map_err(|e| MeltDown::from(e).with_context("operation", "get_all_users"))
     }
 
-    pub async fn is_admin(id: i32) -> Result<bool, MeltDown> {
-        let user = Self::get_user_by_id(id).await?;
+    pub async fn is_admin(id: i32, tenant_name: &str) -> Result<bool, MeltDown> {
+        let user = Self::get_user_by_id(id, tenant_name).await?;
         Ok(user.role == "admin")
     }
 
-    pub async fn get_all_users_active() -> Result<Vec<Users>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_all_users_active(tenant_name: &str) -> Result<Vec<Users>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         user_dsl::users
             .filter(user_dsl::role.ne("dev"))
@@ -75,9 +75,9 @@ impl Users {
             .map_err(|e| MeltDown::from(e).with_context("operation", "get_all_users_active"))
     }
 
-    pub async fn search_users(query: &str) -> Result<Vec<Users>, MeltDown> {
+    pub async fn search_users(query: &str, tenant_name: &str) -> Result<Vec<Users>, MeltDown> {
         let query_string = query.to_string();
-        let mut conn = establish_connection().await;
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
         let query = format!("%{}%", query_string.to_lowercase());
 
         user_dsl::users
@@ -96,8 +96,8 @@ impl Users {
             .map_err(|e| MeltDown::from(e).with_context("operation", "search_users").with_context("query", query))
     }
 
-    pub async fn username_exists(username: String) -> Result<bool, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn username_exists(username: String, tenant_name: &str) -> Result<bool, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         user_dsl::users
             .filter(user_dsl::username.eq(&username))
@@ -108,13 +108,13 @@ impl Users {
             .map(|result| result.is_some())
     }
 
-    pub async fn is_admin_by_id(id: i32) -> Result<bool, MeltDown> {
-        let user = Self::get_user_by_id(id).await?;
+    pub async fn is_admin_by_id(id: i32, tenant_name: &str) -> Result<bool, MeltDown> {
+        let user = Self::get_user_by_id(id, tenant_name).await?;
         Ok(user.role == "admin")
     }
 
-    pub async fn register_user(register: RegisterForm) -> Result<(), MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn register_user(register: RegisterForm, tenant_name: &str) -> Result<(), MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         let password_hash = tokio::task::spawn_blocking(move || hash(&register.password, bcrypt::DEFAULT_COST).map_err(|e| MeltDown::from(e).with_context("operation", "password_hashing")))
             .await
@@ -144,8 +144,10 @@ impl Users {
         .await
     }
 
-    pub async fn get_user_by_id(id: i32) -> Result<Users, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_user_by_id(id: i32, tenant_name: &str) -> Result<Users, MeltDown> {
+        crate::services::default::jwt_service::set_current_tenant(tenant_name);
+
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         user_dsl::users.filter(user_dsl::id.eq(id)).first::<Users>(&mut conn).await.map_err(|e| {
             let mut error = MeltDown::from(e);
@@ -155,8 +157,10 @@ impl Users {
         })
     }
 
-    pub async fn get_user_by_username(username: String) -> Result<Users, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_user_by_username(username: String, tenant_name: &str) -> Result<Users, MeltDown> {
+        crate::services::default::jwt_service::set_current_tenant(tenant_name);
+
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         user_dsl::users
             .filter(user_dsl::username.eq(&username))
@@ -175,8 +179,8 @@ impl Users {
             })
     }
 
-    pub async fn get_id_by_username(username: String) -> Result<i32, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_id_by_username(username: String, tenant_name: &str) -> Result<i32, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         user_dsl::users.filter(user_dsl::username.eq(&username)).select(user_dsl::id).first::<i32>(&mut conn).await.map_err(|e| {
             let mut error = MeltDown::from(e);
@@ -185,9 +189,9 @@ impl Users {
         })
     }
 
-    pub async fn activate_user(&mut self) -> Result<(), MeltDown> {
+    pub async fn activate_user(&mut self, tenant_name: &str) -> Result<(), MeltDown> {
         let user_id = self.id;
-        let mut conn = establish_connection().await;
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         let _ = user_dsl::users
             .filter(user_dsl::id.eq(user_id))
@@ -206,8 +210,8 @@ impl Users {
         Ok(())
     }
 
-    pub async fn deactivate_user(id: i32) -> Result<(), MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn deactivate_user(id: i32, tenant_name: &str) -> Result<(), MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         let _ = user_dsl::users
             .filter(user_dsl::id.eq(id))
@@ -224,9 +228,9 @@ impl Users {
         Ok(())
     }
 
-    pub async fn change_password_by_id(id: i32, new_password: &str) -> Result<(), MeltDown> {
+    pub async fn change_password_by_id(id: i32, new_password: &str, tenant_name: &str) -> Result<(), MeltDown> {
         let password_string = new_password.to_string();
-        let mut conn = establish_connection().await;
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         let password_hash = tokio::task::spawn_blocking(move || hash(&password_string, bcrypt::DEFAULT_COST).map_err(|e| MeltDown::from(e).with_context("operation", "password_hashing")))
             .await
@@ -250,9 +254,9 @@ impl Users {
         Ok(())
     }
 
-    pub async fn reset_password_by_id(id: i32, new_password: &str) -> Result<(), MeltDown> {
+    pub async fn reset_password_by_id(id: i32, new_password: &str, tenant_name: &str) -> Result<(), MeltDown> {
         let password_string = new_password.to_string();
-        let mut conn = establish_connection().await;
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         let password_hash = tokio::task::spawn_blocking(move || hash(&password_string, bcrypt::DEFAULT_COST).map_err(|e| MeltDown::from(e).with_context("operation", "password_hashing")))
             .await
@@ -276,14 +280,14 @@ impl Users {
         Ok(())
     }
 
-    pub async fn update_profile(&mut self, first_name: &str, last_name: &str, email: Option<&str>) -> Result<(), MeltDown> {
+    pub async fn update_profile(&mut self, first_name: &str, last_name: &str, email: Option<&str>, tenant_name: &str) -> Result<(), MeltDown> {
         let user_id = self.id;
         let first_name_string = first_name.to_string();
         let last_name_string = last_name.to_string();
         let email_option = email.map(|e| e.to_string());
 
         let updated_at = chrono::Utc::now().timestamp();
-        let mut conn = establish_connection().await;
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         let user = user_dsl::users
             .filter(user_dsl::id.eq(user_id))

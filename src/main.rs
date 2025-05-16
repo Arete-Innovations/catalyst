@@ -16,6 +16,7 @@ mod models;
 mod routes;
 mod services;
 mod structs;
+mod vessel;
 
 use bootstrap::*;
 use middleware::*;
@@ -28,12 +29,14 @@ async fn rocket() -> _ {
     cata_log!(Info, "Starting server...");
     let mut rocket_app = rocket::build()
         .mount("/", home::routes())
-        .mount("/", with_guard::<AdminGuard>(admin_routes()))
-        .mount("/", with_guard::<AdminGuard>(admin_partial_routes()))
-        .mount("/", with_guard::<UserGuard>(user_routes()))
-        .mount("/", with_guard::<UserGuard>(user_partial_routes()))
+        .mount("/", with_guard::<TenantAdminGuard>(admin_routes()))
+        .mount("/", with_guard::<TenantAdminGuard>(admin_partial_routes()))
+        .mount("/", with_guard::<TenantUserGuard>(user_routes()))
+        .mount("/", with_guard::<TenantUserGuard>(user_partial_routes()))
         .mount("/", with_guard::<ApiKeyGuard>(api_v1_routes()))
         .mount("/public", FileServer::from(relative!("public")))
+        .mount("/", with_guard::<vessel::guards::VesselHomeGuard>(vessel::dashboard_routes()))
+        .mount("/", vessel::auth_routes())
         .register("/", catchers![unauthorized, forbidden, not_found, internal_error, unprocessable_entity])
         .attach(Template::fairing())
         .attach(rocket_csrf_token::Fairing::default())

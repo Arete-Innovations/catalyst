@@ -11,6 +11,17 @@ use serde_json::json;
 use super::app_context;
 use crate::{cata_log, meltdown::*, routes::*};
 
+fn extract_tenant_name(req: &Request) -> String {
+    let path = req.uri().path().as_str();
+    let parts: Vec<&str> = path.split('/').collect();
+
+    if parts.len() > 1 && !parts[1].is_empty() && !parts[1].starts_with("api") && !parts[1].starts_with("public") {
+        parts[1].to_string()
+    } else {
+        "main".to_string()
+    }
+}
+
 #[catch(401)]
 pub fn unauthorized(req: &Request) -> Result<Redirect, Json<serde_json::Value>> {
     cata_log!(Warning, format!("Unauthorized access attempt to {}", req.uri()));
@@ -25,7 +36,15 @@ pub fn unauthorized(req: &Request) -> Result<Redirect, Json<serde_json::Value>> 
         })));
     }
 
-    Ok(Redirect::to(uri!(home::get_login)))
+    let tenant = extract_tenant_name(req);
+    let path = req.uri().path().as_str();
+
+    if path.contains("/admin/") {
+        cata_log!(Info, format!("Redirecting admin access attempt to tenant admin login for tenant: {}", tenant));
+        return Ok(Redirect::to(format!("/{}/auth/login", tenant)));
+    }
+
+    Ok(Redirect::to(format!("/{}/auth/login", tenant)))
 }
 
 #[catch(403)]
@@ -42,12 +61,21 @@ pub fn forbidden(req: &Request) -> Result<Redirect, Json<serde_json::Value>> {
         })));
     }
 
-    Ok(Redirect::to(uri!(home::get_login)))
+    let tenant = extract_tenant_name(req);
+    let path = req.uri().path().as_str();
+
+    let is_vessel_auth = req.local_cache(|| Option::<bool>::None).as_ref().map(|b| *b).unwrap_or(false);
+
+    if path.contains("/admin/") {
+        cata_log!(Info, format!("Redirecting forbidden admin access to tenant admin login for tenant: {}", tenant));
+        return Ok(Redirect::to(format!("/{}/auth/login", tenant)));
+    }
+
+    Ok(Redirect::to(format!("/{}/auth/login", tenant)))
 }
 
 #[catch(404)]
 pub fn not_found(req: &Request) -> Result<Template, Json<serde_json::Value>> {
-    cata_log!(Trace, format!("TESTING"));
     cata_log!(Warning, format!("Not found: {}", req.uri()));
 
     if req.uri().path().starts_with("/api") || accepts_json(req) {
@@ -68,9 +96,27 @@ pub fn not_found(req: &Request) -> Result<Template, Json<serde_json::Value>> {
         csrf_token: None,
         environment: "dev".to_string(),
         sparks: crate::services::makeuse::get_template_components(true),
+        tenant_name: Some(extract_tenant_name(req)),
+        request_uri: req.uri().path().to_string(),
     };
 
-    Ok(Template::render("oops/index", &context))
+    let mut map = serde_json::Map::new();
+    map.insert(
+        "app_context".to_string(),
+        json!({
+            "tenant_name": extract_tenant_name(req),
+            "request_uri": req.uri().path().to_string()
+        }),
+    );
+
+    let context_json = serde_json::to_value(&context).unwrap();
+    if let serde_json::Value::Object(obj) = context_json {
+        for (k, v) in obj {
+            map.insert(k, v);
+        }
+    }
+
+    Ok(Template::render("oops/index", &map))
 }
 
 #[catch(422)]
@@ -92,10 +138,15 @@ pub fn unprocessable_entity(req: &Request) -> Result<Redirect, Json<serde_json::
         })));
     }
 
-    match req.uri().path() {
-        path if path.contains("/auth/login") => Ok(Redirect::to(uri!(home::get_login))),
-        path if path.contains("/auth/register") => Ok(Redirect::to(uri!(home::get_register))),
-        _ => Ok(Redirect::to(uri!(home::get_home))),
+    let tenant = extract_tenant_name(req);
+    let path = req.uri().path().as_str();
+
+    if path.contains("/auth/login") {
+        Ok(Redirect::to(format!("/{}/auth/login", tenant)))
+    } else if path.contains("/auth/register") {
+        Ok(Redirect::to(format!("/{}/auth/register", tenant)))
+    } else {
+        Ok(Redirect::to(format!("/{}", tenant)))
     }
 }
 
@@ -112,7 +163,8 @@ pub fn internal_error(req: &Request) -> Result<Redirect, Json<serde_json::Value>
         })));
     }
 
-    Ok(Redirect::to(uri!(home::page_not_found)))
+    let tenant = extract_tenant_name(req);
+    Ok(Redirect::to(format!("/{}/not-found", tenant)))
 }
 
 fn accepts_json(request: &Request) -> bool {
@@ -134,9 +186,12 @@ impl<'r> Responder<'r, 'static> for MeltDown {
             }))
             .respond_to(req)
         } else {
+            let tenant = extract_tenant_name(req);
+            let path = req.uri().path().as_str();
+
             match status.code {
-                401 => Redirect::to(uri!(home::get_login)).respond_to(req),
-                403 => Redirect::to(uri!(home::get_login)).respond_to(req),
+                401 => Redirect::to(format!("/{}/auth/login", tenant)).respond_to(req),
+                403 => Redirect::to(format!("/{}/auth/login", tenant)).respond_to(req),
                 404 => {
                     let context = app_context::BaseContext {
                         lang: json!({}),
@@ -146,8 +201,26 @@ impl<'r> Responder<'r, 'static> for MeltDown {
                         csrf_token: None,
                         environment: "dev".to_string(),
                         sparks: crate::services::makeuse::get_template_components(true),
+                        tenant_name: Some(tenant.clone()),
+                        request_uri: req.uri().path().to_string(),
                     };
-                    Template::render("oops/index", &context).respond_to(req)
+                    let mut map = serde_json::Map::new();
+                    map.insert(
+                        "app_context".to_string(),
+                        json!({
+                            "tenant_name": tenant.clone(),
+                            "request_uri": req.uri().path().to_string()
+                        }),
+                    );
+
+                    let context_json = serde_json::to_value(&context).unwrap();
+                    if let serde_json::Value::Object(obj) = context_json {
+                        for (k, v) in obj {
+                            map.insert(k, v);
+                        }
+                    }
+
+                    Template::render("oops/index", &map).respond_to(req)
                 }
                 _ => {
                     let context = app_context::BaseContext {
@@ -158,8 +231,26 @@ impl<'r> Responder<'r, 'static> for MeltDown {
                         csrf_token: None,
                         environment: "dev".to_string(),
                         sparks: crate::services::makeuse::get_template_components(true),
+                        tenant_name: Some(tenant.clone()),
+                        request_uri: req.uri().path().to_string(),
                     };
-                    Template::render("oops/index", &context).respond_to(req)
+                    let mut map = serde_json::Map::new();
+                    map.insert(
+                        "app_context".to_string(),
+                        json!({
+                            "tenant_name": tenant.clone(),
+                            "request_uri": req.uri().path().to_string()
+                        }),
+                    );
+
+                    let context_json = serde_json::to_value(&context).unwrap();
+                    if let serde_json::Value::Object(obj) = context_json {
+                        for (k, v) in obj {
+                            map.insert(k, v);
+                        }
+                    }
+
+                    Template::render("oops/index", &map).respond_to(req)
                 }
             }
         }

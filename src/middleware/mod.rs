@@ -7,6 +7,9 @@ pub mod enforcer;
 pub mod guards;
 pub mod htmx;
 pub mod jwt;
+pub mod tenant;
+pub mod tenant_admin_guard;
+pub mod tenant_user_guard;
 
 pub use api_logger::*;
 pub use app_context::*;
@@ -17,3 +20,6 @@ pub use enforcer::*;
 pub use guards::*;
 pub use htmx::*;
 pub use jwt::*;
+pub use tenant::*;
+pub use tenant_admin_guard::*;
+pub use tenant_user_guard::*;

@@ -3,7 +3,7 @@ use diesel_async::RunQueryDsl;
 
 use crate::{
     database::{
-        db::establish_connection,
+        db::{establish_connection, establish_connection_with_tenant},
         schema::{api_keys::dsl as api_key_dsl, api_request_logs::dsl as api_request_log_dsl, api_response_logs::dsl as api_response_log_dsl},
     },
     meltdown::*,
@@ -11,8 +11,8 @@ use crate::{
 };
 
 impl ApiKeys {
-    pub async fn get_api_key_by_token(token: &str) -> Result<ApiKeys, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_api_key_by_token(token: &str, tenant_name: &str) -> Result<ApiKeys, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
         let current_timestamp = chrono::Utc::now().timestamp();
 
         let result = api_key_dsl::api_keys
@@ -29,8 +29,8 @@ impl ApiKeys {
         }
     }
 
-    pub async fn validate_token(token: &str) -> Result<ApiKeys, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn validate_token(token: &str, tenant_name: &str) -> Result<ApiKeys, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
         let current_timestamp = chrono::Utc::now().timestamp();
 
         let result = api_key_dsl::api_keys
@@ -55,8 +55,8 @@ impl ApiKeys {
         }
     }
 
-    pub async fn get_by_id(id: i32) -> Result<ApiKeys, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_by_id(id: i32, tenant_name: &str) -> Result<ApiKeys, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         let result = api_key_dsl::api_keys.find(id).first::<ApiKeys>(&mut conn).await;
 
@@ -66,8 +66,8 @@ impl ApiKeys {
         }
     }
 
-    pub async fn get_by_user_id(user_id: i32) -> Result<Vec<ApiKeys>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_by_user_id(user_id: i32, tenant_name: &str) -> Result<Vec<ApiKeys>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         let result = api_key_dsl::api_keys.filter(api_key_dsl::user_id.eq(user_id)).load::<ApiKeys>(&mut conn).await;
 
@@ -79,8 +79,8 @@ impl ApiKeys {
 }
 
 impl ApiRequestLogs {
-    pub async fn create(new_log: NewApiRequestLog) -> Result<ApiRequestLogs, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn create(new_log: NewApiRequestLog, tenant_name: &str) -> Result<ApiRequestLogs, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         let result = diesel::insert_into(api_request_log_dsl::api_request_logs).values(&new_log).get_result(&mut conn).await;
 
@@ -90,8 +90,8 @@ impl ApiRequestLogs {
         }
     }
 
-    pub async fn get_by_id(id: i32) -> Result<ApiRequestLogs, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_by_id(id: i32, tenant_name: &str) -> Result<ApiRequestLogs, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         let result = api_request_log_dsl::api_request_logs.find(id).first::<ApiRequestLogs>(&mut conn).await;
 
@@ -101,8 +101,8 @@ impl ApiRequestLogs {
         }
     }
 
-    pub async fn get_by_api_key_id(api_key_id: i32) -> Result<Vec<ApiRequestLogs>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_by_api_key_id(api_key_id: i32, tenant_name: &str) -> Result<Vec<ApiRequestLogs>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         let result = api_request_log_dsl::api_request_logs
             .filter(api_request_log_dsl::api_key_id.eq(api_key_id))
@@ -118,8 +118,8 @@ impl ApiRequestLogs {
 }
 
 impl ApiResponseLogs {
-    pub async fn create(new_log: NewApiResponseLog) -> Result<ApiResponseLogs, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn create(new_log: NewApiResponseLog, tenant_name: &str) -> Result<ApiResponseLogs, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         let result = diesel::insert_into(api_response_log_dsl::api_response_logs).values(&new_log).get_result(&mut conn).await;
 
@@ -129,8 +129,8 @@ impl ApiResponseLogs {
         }
     }
 
-    pub async fn get_by_id(id: i32) -> Result<ApiResponseLogs, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_by_id(id: i32, tenant_name: &str) -> Result<ApiResponseLogs, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         let result = api_response_log_dsl::api_response_logs.find(id).first::<ApiResponseLogs>(&mut conn).await;
 
@@ -140,8 +140,8 @@ impl ApiResponseLogs {
         }
     }
 
-    pub async fn get_by_request_log_id(request_log_id: i32) -> Result<Vec<ApiResponseLogs>, MeltDown> {
-        let mut conn = establish_connection().await;
+    pub async fn get_by_request_log_id(request_log_id: i32, tenant_name: &str) -> Result<Vec<ApiResponseLogs>, MeltDown> {
+        let mut conn = establish_connection_with_tenant(tenant_name).await?;
 
         let result = api_response_log_dsl::api_response_logs
             .filter(api_response_log_dsl::request_log_id.eq(request_log_id))

@@ -1,0 +1,80 @@
+{% include "partials/header" %}
+<main>
+  <div class="container">
+    <div class="row">
+      <div class="col s12 m8 l6 offset-m2 offset-l3">
+        <div class="card">
+          <div class="card-content">
+            <span class="card-title center-align"><b>Create a New Vessel</b></span>
+            <p class="center-align">Vessels are tenants that can manage their own database</p>
+
+            <form action="/vessel/auth/register" method="POST">
+              {% if csrf_token %}
+              <input type="hidden" name="authenticity_token" value="{{ csrf_token }}">
+              {% endif %}
+
+              <div class="row">
+                <div class="input-field col s12">
+                  <input id="name" type="text" required name="name" pattern="^[a-zA-Z_][a-zA-Z0-9_]*$">
+                  <label for="name">Tenant Name (letters, numbers, underscore only)</label>
+                  <span class="helper-text">Must start with a letter or underscore and contain only letters, numbers, and underscores</span>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="input-field col s12">
+                  <input id="display_name" type="text" required name="display_name">
+                  <label for="display_name">Display Name</label>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="input-field col s12 m6">
+                  <input id="first_name" type="text" required name="first_name">
+                  <label for="first_name">First Name</label>
+                </div>
+                <div class="input-field col s12 m6">
+                  <input id="last_name" type="text" required name="last_name">
+                  <label for="last_name">Last Name</label>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="input-field col s12">
+                  <input id="username" type="text" required name="username">
+                  <label for="username">Admin Username</label>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="input-field col s12">
+                  <input id="email" type="email" required name="email">
+                  <label for="email">Email</label>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="input-field col s12 m6">
+                  <input id="password" type="password" required name="password" class="validate">
+                  <label for="password">Password</label>
+                </div>
+                <div class="input-field col s12 m6">
+                  <input id="confirm_password" type="password" required name="confirm_password" class="validate">
+                  <label for="confirm_password">Confirm Password</label>
+                </div>
+              </div>
+
+              <div class="center-align">
+                <button class="btn primary activator" type="submit">Register Vessel</button>
+              </div>
+            </form>
+          </div>
+          <div class="card-action center-align">
+            <a href="/vessel/auth/login">Already have a vessel? Login</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+{% include "partials/footer" %}

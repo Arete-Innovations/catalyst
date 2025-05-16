@@ -5,7 +5,23 @@ use rocket::{
     request::{FromRequest, Outcome, Request},
 };
 
-use crate::{meltdown::*, middleware::*, structs::*};
+use crate::{cata_log, meltdown::*, middleware::*, structs::*};
+
+fn extract_tenant_from_path(path: &str) -> Option<String> {
+    let parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+
+    if parts.len() >= 2 && parts[1] == "api" {
+        let tenant_name = parts[0].to_string();
+
+        if !["api", "auth", "vessel", "admin", "user"].contains(&tenant_name.as_str()) {
+            cata_log!(Debug, format!("Extracted tenant name from path: {}", tenant_name));
+            return Some(tenant_name);
+        }
+    }
+
+    cata_log!(Debug, "Could not extract tenant name from path, using default");
+    None
+}
 
 pub struct AdminGuard;
 
@@ -61,7 +77,10 @@ impl<'r> FromRequest<'r> for ApiKeyGuard {
                     return Error((Status::Unauthorized, error));
                 }
 
-                match ApiKeys::validate_token(token).await {
+                let request_path = req.uri().path().to_string();
+                let tenant_name = extract_tenant_from_path(&request_path).unwrap_or_else(|| "main".to_string());
+
+                match ApiKeys::validate_token(token, &tenant_name).await {
                     Ok(api_key) => Success(ApiKeyGuard(api_key)),
                     Err(_) => {
                         let error = MeltDown::new(MeltType::Forbidden, "Invalid API key");

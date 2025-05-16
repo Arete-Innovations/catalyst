@@ -1,17 +1,17 @@
 <nav>
   <div>
-    <a href="/">{{ title }}</a>
+    <a href="{% if app_context.tenant_name %}/{{ app_context.tenant_name }}{% else %}/{% endif %}">{{ title }}</a>
     <ul>
-      <li><a href="/">Home</a></li>
-      <li><a href="/auth/login">Login</a></li>
-      <li><a href="/auth/register">Register</a></li>
+      <li><a href="{% if app_context.tenant_name %}/{{ app_context.tenant_name }}{% else %}/{% endif %}">Home</a></li>
+      <li><a href="{% if app_context.tenant_name %}/{{ app_context.tenant_name }}/auth/login{% else %}/auth/login{% endif %}">Login</a></li>
+      <li><a href="{% if app_context.tenant_name %}/{{ app_context.tenant_name }}/auth/register{% else %}/auth/register{% endif %}">Register</a></li>
       {% if user %}
         {% if user.is_admin %}
-        <li><a href="/admin">Admin Dashboard</a></li>
+        <li><a href="{% if app_context.tenant_name %}/{{ app_context.tenant_name }}/admin{% else %}/admin{% endif %}">Admin Dashboard</a></li>
         {% else %}
-        <li><a href="/user">User Dashboard</a></li>
+        <li><a href="{% if app_context.tenant_name %}/{{ app_context.tenant_name }}/user{% else %}/user{% endif %}">User Dashboard</a></li>
         {% endif %}
-        <li><a href="/auth/logout">Logout</a></li>
+        <li><a href="{% if app_context.tenant_name %}/{{ app_context.tenant_name }}/auth/logout{% else %}/auth/logout{% endif %}">Logout</a></li>
       {% endif %}
     </ul>
   </div>

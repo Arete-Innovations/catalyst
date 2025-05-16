@@ -2,23 +2,8 @@ use rocket::{get, http::Status, post, routes, Route};
 
 use crate::{cata_log, middleware::*, services::*, structs::*};
 
-#[get("/admin/partials/users_table")]
-pub async fn users_table() -> HtmxResult {
-    match Users::get_all_users_active().await {
-        Ok(users) => {
-            let table_html = TableBuilder::new(users).with_table_class("striped responsive-table").with_ignore("password_hash should_change_password").build();
-
-            Ok(HtmxSuccess::with_content(table_html))
-        }
-        Err(error) => {
-            cata_log!(Warning, format!("Error fetching users: {}", error.log_message()));
-            Err(HtmxError::with_notification(error.status_code(), error.user_message()))
-        }
-    }
-}
-
-#[post("/admin/partials/create_duplicate_admin")]
-pub async fn create_duplicate_admin() -> HtmxResult {
+#[post("/<tenant>/admin/partials/create_duplicate_admin")]
+pub async fn create_duplicate_admin(tenant: &str) -> HtmxResult {
     let register_form = RegisterForm {
         username: "admin".to_string(),
         email: "duplicate@admin.com".to_string(),
@@ -29,39 +14,49 @@ pub async fn create_duplicate_admin() -> HtmxResult {
         authenticity_token: "valid-token".to_string(),
     };
 
-    match Users::register_user(register_form).await {
+    match Users::register_user(register_form, tenant).await {
         Ok(_) => Ok(HtmxSuccess::with_notification("Admin created successfully")),
         Err(error) => Err(HtmxError::with_notification(error.status_code(), error.user_message())),
     }
 }
 
-#[post("/admin/partials/test_notification")]
-pub async fn test_notification() -> HtmxResult {
-    Ok(HtmxSuccess::with_notification("This is a test notification message that will be displayed in a notification div"))
+#[post("/<tenant>/admin/partials/test_notification")]
+pub async fn test_notification(tenant: &str) -> HtmxResult {
+    Ok(HtmxSuccess::with_notification(format!(
+        "This is a test notification message for tenant: {} that will be displayed in a notification div",
+        tenant
+    )))
 }
 
-#[post("/admin/partials/test_content")]
-pub async fn test_content() -> HtmxResult {
-    Ok(HtmxSuccess::with_content(
-        "<div class='card-panel teal lighten-2 white-text'><i class='material-icons left'>check_circle</i>This is rendered HTML content</div>",
+#[post("/<tenant>/admin/partials/test_content")]
+pub async fn test_content(tenant: &str) -> HtmxResult {
+    Ok(HtmxSuccess::with_content(format!(
+        "<div class='card-panel teal lighten-2 white-text'><i class='material-icons left'>check_circle</i>This is rendered HTML content for tenant: {}</div>",
+        tenant
+    )))
+}
+
+#[post("/<tenant>/admin/partials/test_error_with_notification")]
+pub async fn test_error_with_notification(tenant: &str) -> HtmxResult {
+    Err(HtmxError::with_notification(
+        Status::BadRequest,
+        format!("This error includes a notification for tenant: {} that can be shown in a toast", tenant),
     ))
 }
 
-#[post("/admin/partials/test_error_with_notification")]
-pub async fn test_error_with_notification() -> HtmxResult {
-    Err(HtmxError::with_notification(Status::BadRequest, "This error includes a notification that can be shown in a toast"))
+#[post("/<tenant>/admin/partials/test_warning")]
+pub async fn test_warning(tenant: &str) -> HtmxResult {
+    Ok(HtmxWarning::with_notification(format!(
+        "This is a warning notification message for tenant: {} that will be displayed as a yellow toast",
+        tenant
+    )))
 }
 
-#[post("/admin/partials/test_warning")]
-pub async fn test_warning() -> HtmxResult {
-    Ok(HtmxWarning::with_notification("This is a warning notification message that will be displayed as a yellow toast"))
-}
-
-#[post("/admin/partials/test_info")]
-pub async fn test_info() -> HtmxResult {
-    Ok(HtmxInfo::with_notification("This is an information message that will be displayed as a blue toast"))
+#[post("/<tenant>/admin/partials/test_info")]
+pub async fn test_info(tenant: &str) -> HtmxResult {
+    Ok(HtmxInfo::with_notification(format!("This is an information message for tenant: {} that will be displayed as a blue toast", tenant)))
 }
 
 pub fn admin_partial_routes() -> Vec<Route> {
-    routes![users_table, create_duplicate_admin, test_notification, test_content, test_error_with_notification, test_warning, test_info]
+    routes![create_duplicate_admin, test_content, test_error_with_notification, test_info, test_notification, test_warning,]
 }

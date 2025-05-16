@@ -8,9 +8,12 @@ Cargo.lock
 # Log files
 /storage/logs/*.log
 /storage/blast/*.log
+/storage/blast/blast.log
+/storage/blast/server.pid
 
 # Claude.ai/code documentation
 CLAUDE.md
+**/.claude/settings.local.json
 
 # IDE files
 .idea/
@@ -26,8 +29,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.bak
-.env
-/storage/blast/blast.log
-/storage/blast/server.pid
 
-**/.claude/settings.local.json
+# Development files
+check_errors.sh
+.env

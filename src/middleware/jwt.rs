@@ -25,6 +25,20 @@ impl Default for TokenType {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub enum AuthSystem {
+    #[serde(rename = "vessel")]
+    Vessel,
+    #[serde(rename = "tenant")]
+    Tenant,
+}
+
+impl Default for AuthSystem {
+    fn default() -> Self {
+        AuthSystem::Tenant
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
     pub sub: String,
@@ -42,16 +56,21 @@ pub struct Claims {
     pub username: String,
     #[serde(default)]
     pub token_type: TokenType,
+    #[serde(default)]
+    pub auth_system: AuthSystem,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub refresh_jti: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub device_info: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_name: Option<String>,
 }
 
 fn default_version() -> u32 {
     1
 }
 
+#[derive(Debug)]
 pub struct JWT(pub Claims);
 
 impl JWT {
@@ -106,6 +125,22 @@ impl JWT {
     pub fn get_device_info(&self) -> Option<&String> {
         self.0.device_info.as_ref()
     }
+
+    pub fn get_tenant_name(&self) -> Option<&String> {
+        self.0.tenant_name.as_ref()
+    }
+
+    pub fn get_auth_system(&self) -> &AuthSystem {
+        &self.0.auth_system
+    }
+
+    pub fn is_vessel_auth(&self) -> bool {
+        self.0.auth_system == AuthSystem::Vessel
+    }
+
+    pub fn is_tenant_auth(&self) -> bool {
+        self.0.auth_system == AuthSystem::Tenant
+    }
 }
 
 #[async_trait]
@@ -114,6 +149,7 @@ impl<'r> FromRequest<'r> for JWT {
 
     async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
         let cookies = request.cookies();
+
         let token_cookie = match cookies.get("access_token") {
             Some(cookie) => cookie,
             None => {
@@ -166,12 +202,12 @@ impl<'r> FromRequest<'r> for JWT {
     }
 }
 
-pub async fn jwt_to_user(jwt_token: &str) -> Result<Users, MeltDown> {
+pub async fn jwt_to_user(jwt_token: &str, tenant_name: &str) -> Result<Users, MeltDown> {
     let claims = validate_token(jwt_token)?;
 
     let user_id: i32 = claims.sub.parse().map_err(|e| MeltDown::new(MeltType::InvalidToken, format!("Invalid user ID in JWT: {}", e)))?;
 
-    Users::get_user_by_id(user_id).await
+    Users::get_user_by_id(user_id, tenant_name).await
 }
 
 pub fn jwt_to_id(jwt: &JWT) -> Result<i32, MeltDown> {

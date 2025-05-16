@@ -1,0 +1,45 @@
+{% include "partials/header" %}
+<main>
+  <div class="container">
+    <div class="row">
+      <div class="col s12 m6 l4 offset-m3 offset-l4">
+        <div class="card">
+          <div class="card-content">
+            <span class="card-title center-align"><b>Vessel Login</b></span>
+            <form action="/vessel/auth/login" method="POST">
+              {% if csrf_token %}
+              <input type="hidden" name="authenticity_token" value="{{ csrf_token }}">
+              {% endif %}
+              <div class="input-field">
+                <input id="username" type="text" required name="username" >
+                <label for="username" class="primary-light-text">Username</label>
+              </div>
+              <div class="input-field">
+                <input id="password" type="password" required name="password" class="validate">
+                <label for="password" class="primary-light-text">Password</label>
+              </div>
+              <div class="switch">
+                <label>
+                  Remember me
+                  <input type="checkbox" name="remember_me">
+                  <span class="lever"></span>
+                </label>
+              </div>
+              <div class="center-align" style="margin-top: 20px;">
+                <button class="btn primary activator" type="submit">Login</button>
+              </div>
+            </form>
+          </div>
+          <div class="card-action center-align">
+            {% if app_context.tenant_name %}
+              <a href="/{{ app_context.tenant_name }}/auth/register">Need an account? Register</a>
+            {% else %}
+              <a href="/vessel/register">Need an account? Register</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+{% include "partials/footer" %}
