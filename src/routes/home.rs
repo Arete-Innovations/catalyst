@@ -74,6 +74,8 @@ async fn post_login(tenant: &str, login_form: Form<LoginForm>, cookies: &CookieJ
 
             let device_info = Some(format!("Login at {} for tenant: {}", Utc::now().to_rfc3339(), tenant));
 
+            crate::services::default::jwt_service::set_current_tenant(tenant);
+
             let token_pair = match crate::services::default::jwt_service::generate_token_pair(&user, remember, device_info) {
                 Ok(pair) => pair,
                 Err(error) => {
@@ -111,9 +113,65 @@ async fn post_login(tenant: &str, login_form: Form<LoginForm>, cookies: &CookieJ
 
 #[get("/<tenant>/auth/logout")]
 fn get_logout(tenant: &str, cookies: &CookieJar<'_>, jwt: Option<JWT>) -> Flash<Redirect> {
-    cookies.remove(Cookie::new("access_token", ""));
-    cookies.remove(Cookie::new("refresh_token", ""));
-    cookies.remove(Cookie::new("user_id", ""));
+    cata_log!(Info, format!("Tenant logout initiated for tenant: {}", tenant));
+
+    fn remove_cookie_with_all_attributes(cookies: &CookieJar<'_>, name: &str, path_opt: Option<&str>) {
+        let name_owned = name.to_string();
+        let path_owned = path_opt.map(|p| p.to_string());
+
+        let mut cookie = Cookie::new(name_owned.clone(), "");
+        if let Some(ref path_value) = path_owned {
+            cookie.set_path(path_value.clone());
+        }
+        cookie.set_http_only(true);
+        cookie.set_secure(true);
+        cookies.remove(cookie);
+
+        let mut basic_cookie = Cookie::new(name_owned, "");
+        if let Some(ref path_value) = path_owned {
+            basic_cookie.set_path(path_value.clone());
+        }
+        cookies.remove(basic_cookie);
+    }
+
+    let cookie_names = ["access_token", "refresh_token", "user_id", "tenant", "tenant_id", "csrf_token"];
+
+    let static_paths = [
+        "/",
+        "/vessel",
+        "/vessel/auth",
+        "/auth",
+        &format!("/{}", tenant),
+        &format!("/{}/auth", tenant),
+        &format!("/{}/admin", tenant),
+        &format!("/{}/user", tenant),
+    ];
+
+    for path in &static_paths {
+        for &name in &cookie_names {
+            remove_cookie_with_all_attributes(cookies, name, Some(path));
+        }
+    }
+
+    for &name in &cookie_names {
+        remove_cookie_with_all_attributes(cookies, name, None);
+    }
+
+    if let Some(ref jwt) = jwt {
+        if let Some(jwt_tenant) = jwt.get_tenant_name() {
+            if jwt_tenant != tenant {
+                let jwt_tenant_paths = [&format!("/{}", jwt_tenant), &format!("/{}/auth", jwt_tenant), &format!("/{}/admin", jwt_tenant), &format!("/{}/user", jwt_tenant)];
+
+                for path in &jwt_tenant_paths {
+                    for &name in &cookie_names {
+                        remove_cookie_with_all_attributes(cookies, name, Some(path));
+                    }
+                }
+
+                cata_log!(Info, format!("Cleared cookies for JWT tenant: {}", jwt_tenant));
+            }
+        }
+    }
 
     if let Some(jwt) = jwt {
         let user_id = jwt.user_id();
@@ -122,6 +180,7 @@ fn get_logout(tenant: &str, cookies: &CookieJar<'_>, jwt: Option<JWT>) -> Flash<
         cata_log!(Info, format!("Anonymous user logged out (tenant: {})", tenant));
     }
 
+    cata_log!(Info, format!("Tenant logout complete, redirecting to login page for: {}", tenant));
     Flash::success(Redirect::to(uri!(get_login(tenant))), "Successfully logged out.")
 }
 
@@ -331,6 +390,8 @@ async fn refresh_token(tenant: &str, cookies: &CookieJar<'_>) -> Result<(), Flas
             return Err(Flash::error(Redirect::to(uri!(get_login(tenant))), "User account issue. Please log in again."));
         }
     };
+
+    crate::services::default::jwt_service::set_current_tenant(tenant);
 
     let token_pair = match crate::services::default::jwt_service::generate_token_pair(&user, token_info.remember, token_info.device_info) {
         Ok(pair) => pair,

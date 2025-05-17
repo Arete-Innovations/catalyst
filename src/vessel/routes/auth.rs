@@ -105,10 +105,16 @@ async fn handle_vessel_post_login(login_form: Form<VesselLoginForm>, cookies: &C
             cata_log!(
                 Info,
                 format!(
-                    "Vessel login successful for {} with role {} and auth_system {:?}",
-                    vessel.username, token_pair.access_claims.role, token_pair.access_claims.auth_system
+                    "Vessel login successful for {} with role {} and auth_system {:?}, tenant: {}",
+                    vessel.username, token_pair.access_claims.role, token_pair.access_claims.auth_system, vessel.name
                 )
             );
+
+            if let Some(jwt_tenant) = &token_pair.access_claims.tenant_name {
+                cata_log!(Info, format!("JWT tenant name set to: {}", jwt_tenant));
+            } else {
+                cata_log!(Warning, "JWT does not contain a tenant name!");
+            }
 
             cookies.add(Cookie::build(Cookie::new("access_token", token_pair.access_token)).http_only(true).secure(true).build());
             cookies.add(Cookie::build(Cookie::new("refresh_token", token_pair.refresh_token)).http_only(true).secure(true).build());
@@ -128,9 +134,54 @@ async fn handle_vessel_post_login(login_form: Form<VesselLoginForm>, cookies: &C
 
 #[get("/vessel/auth/logout")]
 pub fn get_logout(cookies: &CookieJar<'_>, jwt: Option<JWT>) -> Flash<Redirect> {
-    cookies.remove(Cookie::new("access_token", ""));
-    cookies.remove(Cookie::new("refresh_token", ""));
-    cookies.remove(Cookie::new("user_id", ""));
+    cata_log!(Info, "Vessel logout initiated");
+
+    fn remove_cookie_with_all_attributes(cookies: &CookieJar<'_>, name: &str, path_opt: Option<&str>) {
+        let name_owned = name.to_string();
+        let path_owned = path_opt.map(|p| p.to_string());
+
+        let mut cookie = Cookie::new(name_owned.clone(), "");
+        if let Some(ref path_value) = path_owned {
+            cookie.set_path(path_value.clone());
+        }
+        cookie.set_http_only(true);
+        cookie.set_secure(true);
+        cookies.remove(cookie);
+
+        let mut basic_cookie = Cookie::new(name_owned, "");
+        if let Some(ref path_value) = path_owned {
+            basic_cookie.set_path(path_value.clone());
+        }
+        cookies.remove(basic_cookie);
+    }
+
+    let cookie_names = ["access_token", "refresh_token", "user_id", "tenant", "tenant_id", "csrf_token"];
+
+    let static_paths = ["/", "/vessel", "/vessel/auth", "/vessel/dashboard", "/auth"];
+
+    for path in &static_paths {
+        for &name in &cookie_names {
+            remove_cookie_with_all_attributes(cookies, name, Some(path));
+        }
+    }
+
+    for &name in &cookie_names {
+        remove_cookie_with_all_attributes(cookies, name, None);
+    }
+
+    if let Some(ref jwt) = jwt {
+        if let Some(tenant) = jwt.get_tenant_name() {
+            let tenant_paths = [&format!("/{}", tenant), &format!("/{}/auth", tenant), &format!("/{}/admin", tenant), &format!("/{}/user", tenant)];
+
+            for path in &tenant_paths {
+                for &name in &cookie_names {
+                    remove_cookie_with_all_attributes(cookies, name, Some(path));
+                }
+            }
+
+            cata_log!(Info, format!("Cleared cookies for tenant: {}", tenant));
+        }
+    }
 
     if let Some(jwt) = jwt {
         let user_id = jwt.user_id();
@@ -189,6 +240,12 @@ pub async fn refresh_token(cookies: &CookieJar<'_>) -> Result<(), Flash<Redirect
 
     match Vessel::refresh_user_token(&refresh_token).await {
         Ok((vessel, token_pair)) => {
+            if let Some(jwt_tenant) = &token_pair.access_claims.tenant_name {
+                cata_log!(Info, format!("Refresh: JWT tenant name set to: {}", jwt_tenant));
+            } else {
+                cata_log!(Warning, "Refresh: JWT does not contain a tenant name!");
+            }
+
             cookies.add(Cookie::build(Cookie::new("access_token", token_pair.access_token)).http_only(true).secure(true).build());
             cookies.add(Cookie::build(Cookie::new("refresh_token", token_pair.refresh_token)).http_only(true).secure(true).build());
             cookies.add(Cookie::build(Cookie::new("user_id", vessel.id.to_string())).http_only(true).secure(true).build());

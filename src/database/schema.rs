@@ -1,3 +1,5 @@
+// @generated automatically by Diesel CLI.
+
 diesel::table! {
     api_keys (id) {
         id -> Int4,
@@ -87,4 +89,4 @@ diesel::joinable!(api_request_logs -> api_keys (api_key_id));
 diesel::joinable!(api_response_logs -> api_request_logs (request_log_id));
 diesel::joinable!(posts -> users (user_id));
 
-diesel::allow_tables_to_appear_in_same_query!(api_keys, api_request_logs, api_response_logs, cronjobs, posts, spatial_ref_sys, users,);
+diesel::allow_tables_to_appear_in_same_query!(api_keys, api_request_logs, api_response_logs, posts, spatial_ref_sys, users,);

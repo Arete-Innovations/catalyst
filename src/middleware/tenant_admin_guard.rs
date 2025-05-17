@@ -55,8 +55,11 @@ impl<'r> FromRequest<'r> for TenantAdminGuard {
 
                 if let Some(jwt_tenant) = jwt.get_tenant_name() {
                     if *jwt_tenant != tenant_name {
-                        let error = MeltDown::new(MeltType::Forbidden, format!("Authentication is for tenant '{}', not for tenant '{}'", jwt_tenant, tenant_name));
-                        cata_log!(Warning, format!("Admin for tenant '{}' tried to access different tenant: '{}'", jwt_tenant, tenant_name));
+                        let error = MeltDown::new(
+                            MeltType::Forbidden,
+                            format!("Authentication is for tenant '{}', not for tenant '{}'. Please log out and login to the correct tenant.", jwt_tenant, tenant_name),
+                        );
+                        cata_log!(Warning, format!("Admin for tenant '{}' tried to access different tenant: '{}' - JWT claims: {:?}", jwt_tenant, tenant_name, jwt.0));
                         return Error((Status::Forbidden, error));
                     }
                 } else {

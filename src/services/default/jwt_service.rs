@@ -66,7 +66,10 @@ pub fn generate_access_token(user: &Users, refresh_jti: Option<String>, device_i
 
     let jti = Uuid::new_v4().to_string();
 
-    let tenant_name = get_current_tenant().unwrap_or_else(|| "postgres".to_string());
+    let tenant_name = get_current_tenant().unwrap_or_else(|| {
+        cata_log!(Warning, "No tenant name set in current context, this might lead to authentication issues");
+        "unknown_tenant".to_string()
+    });
 
     let token_version = token_registry::get_token_version(&tenant_name, user.id);
 
@@ -163,7 +166,10 @@ pub fn generate_refresh_token(user: &Users, remember: bool, device_info: Option<
 
     let jti = Uuid::new_v4().to_string();
 
-    let tenant_name = get_current_tenant().unwrap_or_else(|| "postgres".to_string());
+    let tenant_name = get_current_tenant().unwrap_or_else(|| {
+        cata_log!(Warning, "No tenant name set in current context, this might lead to authentication issues");
+        "unknown_tenant".to_string()
+    });
 
     let token_version = token_registry::get_token_version(&tenant_name, user.id);
 
@@ -286,7 +292,10 @@ pub fn validate_token(token: &str) -> Result<Claims, MeltDown> {
         Ok(token_data) => {
             let claims = token_data.claims;
 
-            let tenant_name = claims.tenant_name.clone().unwrap_or_else(|| "postgres".to_string());
+            let tenant_name = claims.tenant_name.clone().unwrap_or_else(|| {
+                cata_log!(Warning, "No tenant name in token claims, defaulting to unknown_tenant");
+                "unknown_tenant".to_string()
+            });
             let user_id = claims.sub.parse::<i32>().map_err(|_| MeltDown::new(MeltType::ValidationFailed, "Invalid user ID in token"))?;
 
             if claims.token_type == TokenType::Access {
@@ -315,7 +324,10 @@ pub fn validate_refresh_token(token: &str) -> Result<RefreshTokenInfo, MeltDown>
 
     let user_id = claims.sub.parse::<i32>().map_err(|_| MeltDown::new(MeltType::ValidationFailed, "Invalid user ID in token"))?;
 
-    let tenant_name = claims.tenant_name.clone().unwrap_or_else(|| "postgres".to_string());
+    let tenant_name = claims.tenant_name.clone().unwrap_or_else(|| {
+        cata_log!(Warning, "No tenant name in refresh token claims, defaulting to unknown_tenant");
+        "unknown_tenant".to_string()
+    });
 
     if token_registry::is_refresh_token_used(&tenant_name, user_id, &claims.jti) {
         return Err(MeltDown::new(MeltType::Unauthorized, "Refresh token has already been used, please login again"));
