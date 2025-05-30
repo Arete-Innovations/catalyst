@@ -1,6 +1,6 @@
 use std::env;
 
-use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
+use diesel_async::{AsyncConnection, AsyncPgConnection};
 
 use crate::{cata_log, meltdown::*};
 

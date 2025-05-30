@@ -12,6 +12,14 @@ pub struct AppConfig {
     pub settings: Settings,
     #[serde(default)]
     pub spark: HashMap<String, TomlValue>,
+    #[serde(default)]
+    pub required_env: RequiredEnv,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+pub struct RequiredEnv {
+    #[serde(default)]
+    pub variables: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
@@ -117,9 +125,11 @@ pub async fn bootstrap() {
 
     cata_log!(Debug, "Loading configuration from Catalyst.toml");
     let config = AppConfig::load_from_file("Catalyst.toml").unwrap_or_else(|e| {
-        cata_log!(Warning, format!("Failed to load Catalyst.toml: {}", e));
-        AppConfig::default()
+        cata_log!(Error, format!("Failed to load Catalyst.toml: {}", e));
+        std::process::exit(1);
     });
+
+    validate_required_env_vars(&config);
 
     let _ = APP_CONFIG.set(config);
 
@@ -147,6 +157,27 @@ pub async fn bootstrap() {
 
     let spark_count = registry::get_available_sparks().len();
     cata_log!(Info, format!("Bootstrap complete: {} sparks registered", spark_count));
+}
+
+fn validate_required_env_vars(config: &AppConfig) {
+    let mut invalid_vars = Vec::new();
+    
+    for var in &config.required_env.variables {
+        match std::env::var(var) {
+            Ok(value) if value.trim().is_empty() => invalid_vars.push(var.clone()),
+            Err(_) => invalid_vars.push(var.clone()),
+            _ => {}
+        }
+    }
+    
+    if !invalid_vars.is_empty() {
+        cata_log!(Error, format!("Environment vars {} are missing or empty", invalid_vars.join(", ")));
+        std::process::exit(1);
+    }
+    
+    if !config.required_env.variables.is_empty() {
+        cata_log!(Info, format!("All {} required environment variables are set", config.required_env.variables.len()));
+    }
 }
 
 fn load_spark_manifests() {

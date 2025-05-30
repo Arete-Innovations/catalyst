@@ -1,4 +1,4 @@
-use td::{fs, io::Read, path::Path, process::Command};
+use std::{fs, io::Read, path::Path, process::Command};
 
 use diesel_async::AsyncPgConnection;
 use tokio::task;
@@ -14,12 +14,12 @@ pub async fn provision_vessel_database(name: &str, username: &str, email: &str, 
 
     seed_database(&tenant_name).await?;
 
-    
+    // Get the vessel to access first_name and last_name
     let vessel = match Vessel::find_by_name(name).await {
         Ok(Some(vessel)) => vessel,
         Ok(None) => {
             cata_log!(Warning, format!("Vessel '{}' not found for admin user creation", name));
-            
+            // Fall back to display_name
             create_admin_user(&tenant_name, username, email, password_hash, display_name).await?;
             return Ok(());
         }
@@ -30,7 +30,7 @@ pub async fn provision_vessel_database(name: &str, username: &str, email: &str, 
         }
     };
 
-    
+    // Use vessel data for admin user creation
     create_admin_user_from_vessel(&tenant_name, &vessel).await?;
 
     cata_log!(Info, format!("Successfully provisioned vessel database '{}'", tenant_name));
@@ -214,7 +214,7 @@ async fn seed_database(name: &String) -> Result<(), MeltDown> {
 async fn create_admin_user(db_name: &String, username: &str, email: &str, password_hash: &str, display_name: &str) -> Result<(), MeltDown> {
     cata_log!(Info, format!("Creating admin user '{}' in database '{}'", username, db_name));
 
-    
+    // Extract first and last name from display_name
     let name_parts: Vec<&str> = display_name.split_whitespace().collect();
     let first_name: String;
     let last_name: String;
@@ -234,7 +234,7 @@ async fn create_admin_user(db_name: &String, username: &str, email: &str, passwo
         }
     };
 
-    
+    // Use the vessel username and other properties directly for the tenant admin user
     let insert_sql = format!(
         "INSERT INTO users (
             username, 
@@ -297,7 +297,7 @@ async fn create_admin_user(db_name: &String, username: &str, email: &str, passwo
 async fn create_admin_user_from_vessel(db_name: &String, vessel: &Vessel) -> Result<(), MeltDown> {
     cata_log!(Info, format!("Creating admin user from vessel data for database '{}'", db_name));
 
-    
+    // Use the first_name and last_name directly from the vessel struct
     let insert_sql = format!(
         "INSERT INTO users (
             username, 
@@ -365,19 +365,19 @@ pub fn get_tenant_connection_string(tenant_name: &str) -> String {
     if prefix_template.contains("<database_name>") {
         prefix_template.replace("<database_name>", tenant_name)
     } else {
-        let parts: Vec<&str> = prefix_template.splitn(2, ":
+        let parts: Vec<&str> = prefix_template.splitn(2, "://").collect();
 
         if parts.len() != 2 {
-            panic!("Invalid PREFIX_DATABASE_URL format: Expected protocol:
+            panic!("Invalid PREFIX_DATABASE_URL format: Expected protocol://rest");
         }
 
         let protocol = parts[0];
         let rest_parts: Vec<&str> = parts[1].rsplitn(2, "/").collect();
 
         if rest_parts.len() < 2 {
-            format!("{}:
+            format!("{}://{}/{}", protocol, rest_parts[0], tenant_name)
         } else {
-            format!("{}:
+            format!("{}://{}/{}", protocol, rest_parts[1], tenant_name)
         }
     }
 }

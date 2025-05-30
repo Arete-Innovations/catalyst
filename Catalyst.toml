@@ -2,6 +2,11 @@
 environment = "dev"
 show_compiler_warnings = true
 
+[required_env]
+variables = [
+  "JWT_SECRET"
+]
+
 [sparks]
 
 [codegen]
