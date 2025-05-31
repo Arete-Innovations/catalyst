@@ -3,3 +3,6 @@ pub mod registry;
 
 pub use makeuse::*;
 pub use registry::*;
+
+//here you include the modules you want to expose to the outside world
+
