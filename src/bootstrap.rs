@@ -202,6 +202,11 @@ fn validate_spark_manifest(manifest_path: &Path, spark_name: &str) -> Result<(),
 pub async fn bootstrap() {
     cata_log!(Info, "Starting bootstrap process");
 
+    if let Err(e) = run_custom_bootstrap(BootstrapPhase::PreConfig).await {
+        cata_log!(Error, format!("Custom bootstrap PreConfig phase failed: {}", e));
+        std::process::exit(1);
+    }
+
     dotenv::dotenv().ok();
 
     logger::setup_panic_hook();
@@ -217,14 +222,34 @@ pub async fn bootstrap() {
 
     let _ = APP_CONFIG.set(config);
 
+    if let Err(e) = run_custom_bootstrap(BootstrapPhase::PostConfig).await {
+        cata_log!(Error, format!("Custom bootstrap PostConfig phase failed: {}", e));
+        std::process::exit(1);
+    }
+
     if let Some(config) = APP_CONFIG.get() {
         cata_log!(Info, format!("Environment: {}", config.settings.environment));
+    }
+
+    if let Err(e) = run_custom_bootstrap(BootstrapPhase::PreDatabase).await {
+        cata_log!(Error, format!("Custom bootstrap PreDatabase phase failed: {}", e));
+        std::process::exit(1);
     }
 
     cata_log!(Debug, "Initializing database connection pool");
     if let Err(e) = crate::database::db::init_connection_pool().await {
         cata_log!(Error, format!("Failed to initialize database connection pool: {}", e));
         panic!("Database initialization failed");
+    }
+
+    if let Err(e) = run_custom_bootstrap(BootstrapPhase::PostDatabase).await {
+        cata_log!(Error, format!("Custom bootstrap PostDatabase phase failed: {}", e));
+        std::process::exit(1);
+    }
+
+    if let Err(e) = run_custom_bootstrap(BootstrapPhase::PreSparks).await {
+        cata_log!(Error, format!("Custom bootstrap PreSparks phase failed: {}", e));
+        std::process::exit(1);
     }
 
     registry::init_registry();
@@ -235,6 +260,11 @@ pub async fn bootstrap() {
     validate_and_sync_spark_state();
     load_spark_manifests();
 
+    if let Err(e) = run_custom_bootstrap(BootstrapPhase::PostSparks).await {
+        cata_log!(Error, format!("Custom bootstrap PostSparks phase failed: {}", e));
+        std::process::exit(1);
+    }
+
     cata_log!(Info, "Initializing token version registry");
     if let Err(e) = token_registry::initialize_token_registry().await {
         cata_log!(Error, format!("Failed to initialize token registry: {}", e));
@@ -242,6 +272,11 @@ pub async fn bootstrap() {
 
     let spark_count = registry::get_available_sparks().len();
     cata_log!(Info, format!("Bootstrap complete: {} sparks registered", spark_count));
+
+    if let Err(e) = run_custom_bootstrap(BootstrapPhase::PostBootstrap).await {
+        cata_log!(Error, format!("Custom bootstrap PostBootstrap phase failed: {}", e));
+        std::process::exit(1);
+    }
 }
 
 fn validate_required_env_vars(config: &AppConfig) {
