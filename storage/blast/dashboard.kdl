@@ -16,7 +16,7 @@ layout {
                     args "-c" "storage/blast/blast_log.sh storage/logs/trace.log"
                 }
                 pane name="Error Log" command="bash" size="20%" {
-                    args "-c" "tail -n30 -f storage/logs/error.log"
+                    args "-c" "storage/blast/blast_log.sh storage/logs/error.log"
                 }
             }
 
@@ -52,7 +52,7 @@ layout {
                 args "-c" "storage/blast/blast_log.sh  storage/logs/warning.log"
             }
             pane name="Info Logs" command="bash" {
-                args "-c" "tail -n100 -f storage/logs/info.log"
+                args "-c" "storage/blast/blast_log.sh storage/logs/info.log"
             }
             pane name="Debug Logs" command="bash" {
                 args "-c" "storage/blast/blast_log.sh storage/logs/debug.log"
