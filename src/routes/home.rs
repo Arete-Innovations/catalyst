@@ -18,13 +18,13 @@ async fn post_login(tenant: &str, login_form: Form<LoginForm>, cookies: &CookieJ
             if !exists {
                 cata_log!(Warning, format!("Attempted to login to non-existent tenant: {}", tenant));
                 let error = MeltDown::new(MeltType::NotFound, "Tenant not found");
-                return Err(Flash::error(Redirect::to(uri!("/vessel/auth/login")), error.user_message()));
+                return Err(Flash::error(Redirect::to("/vessel/auth/login"), error.user_message()));
             }
         }
         Err(e) => {
             cata_log!(Error, format!("Error checking tenant existence: {}", e.log_message()));
             let error = MeltDown::new(MeltType::DatabaseError, "Database error");
-            return Err(Flash::error(Redirect::to(uri!("/vessel/auth/login")), error.user_message()));
+            return Err(Flash::error(Redirect::to("/vessel/auth/login"), error.user_message()));
         }
     }
 
@@ -191,13 +191,13 @@ async fn get_register(tenant: &str, app_context: AppContext<'_>) -> Result<Templ
             if !exists {
                 cata_log!(Warning, format!("Attempted to access registration for non-existent tenant: {}", tenant));
                 let error = MeltDown::new(MeltType::NotFound, "Tenant not found");
-                return Err(Flash::error(Redirect::to(uri!("/vessel/auth/login")), error.user_message()));
+                return Err(Flash::error(Redirect::to("/vessel/auth/login"), error.user_message()));
             }
         }
         Err(e) => {
             cata_log!(Error, format!("Error checking tenant existence: {}", e.log_message()));
             let error = MeltDown::new(MeltType::DatabaseError, "Database error");
-            return Err(Flash::error(Redirect::to(uri!("/vessel/auth/login")), error.user_message()));
+            return Err(Flash::error(Redirect::to("/vessel/auth/login"), error.user_message()));
         }
     }
 
@@ -213,13 +213,13 @@ async fn post_register(tenant: &str, register_form: Form<RegisterForm>, app_cont
             if !exists {
                 cata_log!(Warning, format!("Attempted to register for non-existent tenant: {}", tenant));
                 let error = MeltDown::new(MeltType::NotFound, "Tenant not found");
-                return Err(Flash::error(Redirect::to(uri!("/vessel/auth/login")), error.user_message()));
+                return Err(Flash::error(Redirect::to("/vessel/auth/login"), error.user_message()));
             }
         }
         Err(e) => {
             cata_log!(Error, format!("Error checking tenant existence: {}", e.log_message()));
             let error = MeltDown::new(MeltType::DatabaseError, "Database error");
-            return Err(Flash::error(Redirect::to(uri!("/vessel/auth/login")), error.user_message()));
+            return Err(Flash::error(Redirect::to("/vessel/auth/login"), error.user_message()));
         }
     }
 
@@ -248,13 +248,13 @@ async fn get_login(tenant: &str, app_context: AppContext<'_>, jwt: Option<JWT>, 
             if !exists {
                 cata_log!(Warning, format!("Attempted to access login for non-existent tenant: {}", tenant));
                 let error = MeltDown::new(MeltType::NotFound, "Tenant not found");
-                return Err(Flash::error(Redirect::to(uri!("/vessel/auth/login")), error.user_message()));
+                return Err(Flash::error(Redirect::to("/vessel/auth/login"), error.user_message()));
             }
         }
         Err(e) => {
             cata_log!(Error, format!("Error checking tenant existence: {}", e.log_message()));
             let error = MeltDown::new(MeltType::DatabaseError, "Database error");
-            return Err(Flash::error(Redirect::to(uri!("/vessel/auth/login")), error.user_message()));
+            return Err(Flash::error(Redirect::to("/vessel/auth/login"), error.user_message()));
         }
     }
 
@@ -313,13 +313,13 @@ pub async fn get_home(tenant: &str, app_context: AppContext<'_>, jwt: Option<JWT
             if !exists {
                 cata_log!(Warning, format!("Attempted to access non-existent tenant: {}", tenant));
                 let error = MeltDown::new(MeltType::NotFound, "Tenant not found");
-                return Err(Flash::error(Redirect::to(uri!("/vessel/auth/login")), error.user_message()));
+                return Err(Flash::error(Redirect::to("/vessel/auth/login"), error.user_message()));
             }
         }
         Err(e) => {
             cata_log!(Error, format!("Error checking tenant existence: {}", e.log_message()));
             let error = MeltDown::new(MeltType::DatabaseError, "Database error");
-            return Err(Flash::error(Redirect::to(uri!("/vessel/auth/login")), error.user_message()));
+            return Err(Flash::error(Redirect::to("/vessel/auth/login"), error.user_message()));
         }
     }
 
