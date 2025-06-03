@@ -1,105 +1,82 @@
-[settings]
-environment = "dev"
-show_compiler_warnings = true
-
-[required_env]
-variables = [
-  "JWT_SECRET"
-]
-
-[sparks]
-
-[codegen]
-structs_dir = "src/structs/generated"
-models_dir = "src/models/generated"
-schema_file = "src/database/schema.rs"
-
-# Post-generation hooks section - scripts to run after code generation
-[codegen.hooks]
-# Set to true to enable running post-generation hooks
-enabled = true
-# Scripts to run after specific generation tasks
-# The paths should be relative to the project root
-post_structs = [
-  # "scripts/post_structs_generation.sh arg1 arg2",
-  # "cargo fmt",
-]
-post_models = [
-  # "scripts/post_models_generation.sh",
-  # "cargo clippy",
-]
-# Script to run after any generation task
-post_any = [
-  # "scripts/notify_generation_complete.sh",
-]
-
-[codegen.models]
-ignore= [
-  "users",
-  "spatial_ref_sys",
-  "api_keys",
-  "api_request_logs",
-  "api_response_logs"
-]
-
-[codegen.structs]
-ignore = [
-  "users",
-  "spatial_ref_sys",
-  "api_keys",
-  "api_request_logs",
-  "api_response_logs"
-]
-derives = [
-  "Debug",
-  "Queryable",
-  "Clone", 
-  "Serialize", 
-  "Deserialize"
-]
-imports = [
-  "serde::Serialize",
-  "serde::Deserialize",
-  "diesel::Identifiable",
-  "diesel::Queryable"
-]
-
-[codegen.structs.insertable]
-# Tables to skip insertable struct generation
-ignore = [
-  "spatial_ref_sys",
-  "api_keys",
-  "api_request_logs",
-  "api_response_logs"
-]
-derives = [
-  "Debug",
-  "Queryable",
-  "Clone", 
-  "Serialize", 
-  "Deserialize"
-]
-imports = [
-  "serde::Serialize",
-  "serde::Deserialize",
-  "diesel::Identifiable",
-  "diesel::Queryable"
-]
-
-# Example of struct-specific imports (replace ExampleStruct with your struct name)
-# [codegen.structs.ExampleStruct]
-# imports = [
-#   "chrono::NaiveDateTime",
-#   "uuid::Uuid"
-# ]
-
 [assets]
 public_dir = "public"
-
-[assets.locale]
-dir = "src/assets/locale"
-default_language = "en"
 
 [assets.htmx]
 js_url = "https://cdnjs.cloudflare.com/ajax/libs/htmx/2.0.4/htmx.min.js"
 public_dir = "js/htmx"
+
+[assets.locale]
+default_language = "en"
+dir = "src/assets/locale"
+
+[codegen]
+models_dir = "src/models/generated"
+schema_file = "src/database/schema.rs"
+structs_dir = "src/structs/generated"
+
+[codegen.hooks]
+enabled = true
+post_any = []
+post_models = []
+post_structs = []
+
+[codegen.models]
+ignore = [
+    "users",
+    "spatial_ref_sys",
+    "api_keys",
+    "api_request_logs",
+    "api_response_logs",
+]
+
+[codegen.structs]
+derives = [
+    "Debug",
+    "Queryable",
+    "Clone",
+    "Serialize",
+    "Deserialize",
+]
+ignore = [
+    "users",
+    "spatial_ref_sys",
+    "api_keys",
+    "api_request_logs",
+    "api_response_logs",
+]
+imports = [
+    "serde::Serialize",
+    "serde::Deserialize",
+    "diesel::Identifiable",
+    "diesel::Queryable",
+]
+
+[codegen.structs.insertable]
+derives = [
+    "Debug",
+    "Queryable",
+    "Clone",
+    "Serialize",
+    "Deserialize",
+]
+ignore = [
+    "spatial_ref_sys",
+    "api_keys",
+    "api_request_logs",
+    "api_response_logs",
+]
+imports = [
+    "serde::Serialize",
+    "serde::Deserialize",
+    "diesel::Identifiable",
+    "diesel::Queryable",
+]
+
+[required_env]
+variables = ["JWT_SECRET"]
+
+[settings]
+environment = "dev"
+show_compiler_warnings = true
+
+[sparks]

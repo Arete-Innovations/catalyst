@@ -16,7 +16,7 @@ layout {
                     args "-c" "storage/blast/blast_log.sh storage/logs/trace.log"
                 }
                 pane name="Error Log" command="bash" size="20%" {
-                    args "-c" "storage/blast/blast_log.sh storage/logs/error.log"
+                    args "-c" "blast log view error"
                 }
             }
 
@@ -44,18 +44,22 @@ layout {
     }
 
     tab name="📜Logs" {
-        pane split_direction="horizontal" {
-            pane name="Error Logs" command="bash" {
-                args "-c" "storage/blast/blast_log.sh  storage/logs/error.log"
+        pane split_direction="vertical" {
+            pane split_direction="horizontal" size="50%" {
+                pane name="Error Logs" command="bash" size="50%" {
+                    args "-c" "blast log view error"
+                }
+                pane name="Warning Logs" command="bash" size="50%" {
+                    args "-c" "blast log view warning"
+                }
             }
-            pane name="Warning Logs" command="bash" {
-                args "-c" "storage/blast/blast_log.sh  storage/logs/warning.log"
-            }
-            pane name="Info Logs" command="bash" {
-                args "-c" "storage/blast/blast_log.sh storage/logs/info.log"
-            }
-            pane name="Debug Logs" command="bash" {
-                args "-c" "storage/blast/blast_log.sh storage/logs/debug.log"
+            pane split_direction="horizontal" size="50%" {
+                pane name="Info Logs" command="bash" size="50%" {
+                    args "-c" "blast log view info"
+                }
+                pane name="Debug Logs" command="bash" size="50%" {
+                    args "-c" "blast log view debug"
+                }
             }
         }
     }
