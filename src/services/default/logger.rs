@@ -1,7 +1,7 @@
 use std::{
     fs::{self, OpenOptions},
     io::Write,
-    panic::{self, PanicHookInfo},
+    panic::{self, PanicHookInfo, Location},
     path::Path,
     process, thread,
     time::{SystemTime, UNIX_EPOCH},
@@ -85,6 +85,61 @@ impl CatalystLogger {
         if let Err(e) = OpenOptions::new().append(true).create(true).open(&file_path).and_then(|mut file| file.write_all(file_log_entry.as_bytes())) {
             eprintln!("Failed to write log: {}", e);
         }
+    }
+
+    #[track_caller]
+    pub fn log_with_caller(level: LogLevel, message: &str) {
+        let location = Location::caller();
+        let src_loc = format!("{}:{}::{}", 
+            location.file().split('/').last().unwrap_or(location.file()), 
+            location.line(),
+            location.file().split('/').nth_back(1).unwrap_or("unknown")
+        );
+        
+        let full_msg = format!("[{}] {}", src_loc, message);
+        Self::log(level, &full_msg);
+    }
+
+    #[track_caller]
+    pub fn log_with_caller_and_context(level: LogLevel, message: &str, context: &str) {
+        let location = Location::caller();
+        let src_loc = format!("{}:{}::{}", 
+            location.file().split('/').last().unwrap_or(location.file()), 
+            location.line(),
+            location.file().split('/').nth_back(1).unwrap_or("unknown")
+        );
+        
+        let enhanced_msg = format!("{} → {}", message, context);
+        let full_msg = format!("[{}] {}", src_loc, enhanced_msg);
+        Self::log(level, &full_msg);
+    }
+
+    #[track_caller]
+    pub fn log_with_caller_and_data(level: LogLevel, message: &str, data: &str) {
+        let location = Location::caller();
+        let src_loc = format!("{}:{}::{}", 
+            location.file().split('/').last().unwrap_or(location.file()), 
+            location.line(),
+            location.file().split('/').nth_back(1).unwrap_or("unknown")
+        );
+        
+        let enhanced_msg = format!("{} | data: {}", message, data);
+        let full_msg = format!("[{}] {}", src_loc, enhanced_msg);
+        Self::log(level, &full_msg);
+    }
+
+    #[track_caller]
+    pub fn log_with_caller_context_and_data(level: LogLevel, message: &str, context: &str, data: &str) {
+        let location = Location::caller();
+        let src_loc = format!("{}:{}::{}", 
+            location.file().split('/').last().unwrap_or(location.file()), 
+            location.line(),
+            location.file().split('/').nth_back(1).unwrap_or("unknown")
+        );
+        
+        let enhanced_msg = format!("{} → {} | data: {}", message, context, data);
+        let full_msg = format!("[{}] {}", src_loc, enhanced_msg);
+        Self::log(level, &full_msg);
     }
 }
 
@@ -508,58 +563,35 @@ pub fn setup_panic_hook() {
 
 #[macro_export]
 macro_rules! cata_log {
-    ($level:ident, $msg:expr) => {{
-        let src_loc = if module_path!().len() > 25 {
-            format!("{}:{}::{}", file!().split('/').last().unwrap_or(file!()), line!(), module_path!().split("::").last().unwrap_or(""))
-        } else {
-            format!("{}:{}", file!(), line!())
-        };
+    ($level:ident, $msg:expr) => {
+        $crate::services::logger::CatalystLogger::log_with_caller(
+            $crate::services::logger::LogLevel::$level, 
+            &$msg.to_string()
+        )
+    };
 
-        let (call_stack, trace_time_ns) = $crate::services::logger::capture_call_stack();
-        let context_info = format!("called from {}", module_path!());
-        let enhanced_msg = $crate::services::logger::format_with_context_and_trace_timed(&$msg.to_string(), &context_info, &call_stack, trace_time_ns);
-        let full_msg = format!("[{}] {}", src_loc, enhanced_msg);
-        $crate::services::logger::CatalystLogger::log($crate::services::logger::LogLevel::$level, &full_msg);
-    }};
+    ($level:ident, $msg:expr, context: $context:expr) => {
+        $crate::services::logger::CatalystLogger::log_with_caller_and_context(
+            $crate::services::logger::LogLevel::$level, 
+            &$msg.to_string(),
+            &$context.to_string()
+        )
+    };
 
-    ($level:ident, $msg:expr, context: $context:expr) => {{
-        let src_loc = if module_path!().len() > 25 {
-            format!("{}:{}::{}", file!().split('/').last().unwrap_or(file!()), line!(), module_path!().split("::").last().unwrap_or(""))
-        } else {
-            format!("{}:{}", file!(), line!())
-        };
+    ($level:ident, $msg:expr, data: $data:expr) => {
+        $crate::services::logger::CatalystLogger::log_with_caller_and_data(
+            $crate::services::logger::LogLevel::$level, 
+            &$msg.to_string(),
+            &$data.to_string()
+        )
+    };
 
-        let (call_stack, trace_time_ns) = $crate::services::logger::capture_call_stack();
-        let enhanced_msg = $crate::services::logger::format_with_context_and_trace_timed(&$msg.to_string(), &$context.to_string(), &call_stack, trace_time_ns);
-        let full_msg = format!("[{}] {}", src_loc, enhanced_msg);
-        $crate::services::logger::CatalystLogger::log($crate::services::logger::LogLevel::$level, &full_msg);
-    }};
-
-    ($level:ident, $msg:expr, data: $data:expr) => {{
-        let src_loc = if module_path!().len() > 25 {
-            format!("{}:{}::{}", file!().split('/').last().unwrap_or(file!()), line!(), module_path!().split("::").last().unwrap_or(""))
-        } else {
-            format!("{}:{}", file!(), line!())
-        };
-
-        let (call_stack, trace_time_ns) = $crate::services::logger::capture_call_stack();
-        let context_info = format!("called from {} | data: {}", module_path!(), $data);
-        let enhanced_msg = $crate::services::logger::format_with_context_and_trace_timed(&$msg.to_string(), &context_info, &call_stack, trace_time_ns);
-        let full_msg = format!("[{}] {}", src_loc, enhanced_msg);
-        $crate::services::logger::CatalystLogger::log($crate::services::logger::LogLevel::$level, &full_msg);
-    }};
-
-    ($level:ident, $msg:expr, context: $context:expr, data: $data:expr) => {{
-        let src_loc = if module_path!().len() > 25 {
-            format!("{}:{}::{}", file!().split('/').last().unwrap_or(file!()), line!(), module_path!().split("::").last().unwrap_or(""))
-        } else {
-            format!("{}:{}", file!(), line!())
-        };
-
-        let (call_stack, trace_time_ns) = $crate::services::logger::capture_call_stack();
-        let context_info = format!("{} | data: {}", $context, $data);
-        let enhanced_msg = $crate::services::logger::format_with_context_and_trace_timed(&$msg.to_string(), &context_info, &call_stack, trace_time_ns);
-        let full_msg = format!("[{}] {}", src_loc, enhanced_msg);
-        $crate::services::logger::CatalystLogger::log($crate::services::logger::LogLevel::$level, &full_msg);
-    }};
+    ($level:ident, $msg:expr, context: $context:expr, data: $data:expr) => {
+        $crate::services::logger::CatalystLogger::log_with_caller_context_and_data(
+            $crate::services::logger::LogLevel::$level, 
+            &$msg.to_string(),
+            &$context.to_string(),
+            &$data.to_string()
+        )
+    };
 }
