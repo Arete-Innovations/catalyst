@@ -23,10 +23,4 @@ INSERT INTO api_response_logs (request_log_id, response_status, response_time_ms
 (5, 200, 54, 128, 'application/json', '{"Content-Type": "application/json", "Server": "Catalyst"}', EXTRACT(EPOCH FROM NOW() - INTERVAL '2 days')),
 (6, 403, 18, 64, 'application/json', '{"Content-Type": "application/json", "Server": "Catalyst"}', EXTRACT(EPOCH FROM NOW() - INTERVAL '1 day')),
 (7, 401, 15, 96, 'application/json', '{"Content-Type": "application/json", "Server": "Catalyst"}', EXTRACT(EPOCH FROM NOW() - INTERVAL '1 day'))
-ON CONFLICT (request_log_id) DO UPDATE SET
-    response_status = EXCLUDED.response_status,
-    response_time_ms = EXCLUDED.response_time_ms,
-    response_content_length = EXCLUDED.response_content_length,
-    response_content_type = EXCLUDED.response_content_type,
-    response_headers = EXCLUDED.response_headers,
-    created_at = EXCLUDED.created_at;
+ON CONFLICT DO NOTHING;
