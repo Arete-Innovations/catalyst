@@ -349,7 +349,7 @@ impl From<MeltDown> for Flash<Redirect> {
     fn from(error: MeltDown) -> Self {
         error.log();
 
-        Flash::error(Redirect::to(uri!("/auth/login")), error.user_message())
+        Flash::error(Redirect::to("/auth/login"), error.user_message())
     }
 }
 
